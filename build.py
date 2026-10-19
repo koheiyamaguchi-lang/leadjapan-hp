@@ -32,15 +32,21 @@ def build(out_dir: pathlib.Path) -> list[pathlib.Path]:
     return written
 
 
+def placeholder_report(paths: list[pathlib.Path]) -> dict[str, int]:
+    """filename -> count of 【要入力】 markers, only for files with at least one."""
+    report: dict[str, int] = {}
+    for p in paths:
+        n = find_placeholders(pathlib.Path(p).read_text(encoding="utf-8"))
+        if n:
+            report[pathlib.Path(p).name] = n
+    return report
+
+
 def main() -> None:
     written = build(ROOT / "site")
-    total = 0
-    files = []
-    for p in written:
-        n = find_placeholders(p.read_text(encoding="utf-8"))
-        if n:
-            total += n
-            files.append(p.name)
+    report = placeholder_report(written)
+    total = sum(report.values())
+    files = list(report)
     print(f"{len(written)} ページを site/ に生成しました")
     if total:
         print(f"警告: 【要入力】 が {total} 箇所残っています ({', '.join(files)})")

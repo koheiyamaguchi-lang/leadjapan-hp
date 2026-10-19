@@ -290,7 +290,17 @@ def body_contact() -> str:
 <!-- 無料の Google フォームを使う場合はここに埋め込みリンクを置く -->
 <h2 class="contact-sub">お問い合わせの例</h2>
 <ul class="contact-cats">{categories}</ul>
-<p class="contact-note">お預かりした個人情報は、お問い合わせへの対応の目的にのみ利用します。詳しくは<a href="privacy.html">プライバシーポリシー</a>をご確認ください。</p>
+<p class="contact-note">お預かりした個人情報は、プライバシーポリシーに定める利用目的の範囲内で利用します。詳しくは<a href="privacy.html">プライバシーポリシー</a>をご確認ください。</p>
+</div>
+</section>"""
+
+
+def body_404() -> str:
+    return f"""{page_hero("ページが見つかりません", "404 NOT FOUND")}
+<section class="section">
+<div class="container">
+<p>お探しのページは移動または削除された可能性があります。URLをご確認のうえ、トップページからあらためてお探しください。</p>
+<p><a class="btn" href="index.html">トップページへ戻る</a></p>
 </div>
 </section>"""
 
@@ -340,5 +350,11 @@ PAGES: list[Page] = [
         title="お問い合わせ | Lead Japan 合同会社",
         description="Lead Japan 合同会社へのお問い合わせ方法のご案内です。",
         body=body_contact,
+    ),
+    Page(
+        filename="404.html",
+        title="ページが見つかりません | Lead Japan 合同会社",
+        description="お探しのページが見つかりませんでした。トップページからお探しください。",
+        body=body_404,
     ),
 ]

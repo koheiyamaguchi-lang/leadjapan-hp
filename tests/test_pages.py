@@ -5,7 +5,7 @@ from pathlib import Path
 from tests.helpers import ROOT
 from unittest import mock
 
-from sitegen.content import BUSINESSES, NEWS, PLACEHOLDER, PRIVACY, NewsItem
+from sitegen.content import BUSINESSES, NEWS, PLACEHOLDER, PRIVACY, SITE, NewsItem
 from sitegen.pages import (PAGES, body_business, body_company, body_contact, body_index,
                            body_message, body_news, body_privacy, news_anchor,
                            news_list_html, page_hero)
@@ -114,6 +114,18 @@ class NewsPrivacyContactTests(unittest.TestCase):
             self.assertIn(heading, b)
         self.assertIn("制定日：2026年10月19日", b)
 
+    def test_privacy_enactment_date_once(self):
+        self.assertEqual(body_privacy().count("制定日"), 1)
+
+    def test_privacy_contact_section_names_operator(self):
+        text = " ".join(dict(PRIVACY)["お問い合わせ窓口"])
+        for key in ("name", "address", "representative", "email"):
+            self.assertIn(SITE[key], text)
+        self.assertIn("お問い合わせページ", text)
+
+    def test_contact_note_matches_privacy_purpose(self):
+        self.assertIn("プライバシーポリシーに定める利用目的の範囲内で", body_contact())
+
     def test_contact_no_form_post(self):
         b = body_contact()
         self.assertNotIn("<form", b)
@@ -125,10 +137,10 @@ class NewsPrivacyContactTests(unittest.TestCase):
         with mock.patch.dict("sitegen.pages.SITE", {"email": "info@example.jp"}):
             self.assertIn('href="mailto:info@example.jp"', body_contact())
 
-    def test_all_seven_pages_registered(self):
+    def test_all_pages_registered(self):
         self.assertEqual([p.filename for p in PAGES],
                          ["index.html", "company.html", "business.html", "message.html",
-                          "news.html", "privacy.html", "contact.html"])
+                          "news.html", "privacy.html", "contact.html", "404.html"])
 
 
 if __name__ == "__main__":
