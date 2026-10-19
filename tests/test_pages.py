@@ -4,7 +4,8 @@ from pathlib import Path
 
 from tests.helpers import ROOT
 from sitegen.content import BUSINESSES, NEWS, NewsItem
-from sitegen.pages import PAGES, body_index, news_anchor, news_list_html
+from sitegen.pages import (PAGES, body_business, body_company, body_index, body_message,
+                           news_anchor, news_list_html, page_hero)
 
 
 class IndexPageTests(unittest.TestCase):
@@ -61,3 +62,40 @@ class NewsListTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SubPageTests(unittest.TestCase):
+    def test_company_table_rows(self):
+        b = body_company()
+        for th in ("商号", "英文社名", "設立", "代表者", "所在地", "事業内容"):
+            self.assertIn(f'<th scope="row">{th}</th>', b)
+        self.assertIn("Lead Japan 合同会社", b)
+
+    def test_business_sections_have_ids(self):
+        b = body_business()
+        for biz in BUSINESSES:
+            self.assertIn(f'id="{biz.slug}"', b)
+        self.assertIn("スタートアップ向け業務システムの開発", b)
+
+    def test_business_text_is_escaped(self):
+        from unittest import mock
+        evil = BUSINESSES[0].__class__("ai", "01", "<b>X</b>", "E", "s&t", ("d",))
+        with mock.patch("sitegen.pages.BUSINESSES", (evil,)):
+            b = body_business()
+        self.assertIn("&lt;b&gt;X&lt;/b&gt;", b)
+        self.assertIn("s&amp;t", b)
+
+    def test_message_has_signature(self):
+        self.assertIn("代表社員", body_message())
+
+    def test_subpages_have_breadcrumb(self):
+        for fn in (body_company, body_business, body_message):
+            self.assertIn('aria-label="パンくずリスト"', fn())
+
+    def test_pages_registered_in_order(self):
+        self.assertEqual([p.filename for p in PAGES[:4]],
+                         ["index.html", "company.html", "business.html", "message.html"])
+        self.assertEqual(PAGES[1].title, "会社紹介 | Lead Japan 合同会社")
+
+    def test_page_hero_escapes(self):
+        self.assertIn("&lt;", page_hero("<", "X"))

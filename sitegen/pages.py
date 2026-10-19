@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Sequence
 
-from sitegen.content import BUSINESSES, MESSAGE, NEWS, SITE, NewsItem
+from sitegen.content import BUSINESSES, MESSAGE, MESSAGE_TITLE, NEWS, SITE, NewsItem
 from sitegen.render import esc
 
 
@@ -108,6 +108,121 @@ def body_index() -> str:
 </section>"""
 
 
+def page_hero(title: str, label_en: str) -> str:
+    return (
+        '<section class="page-hero"><div class="container">'
+        f'<span class="section-label">{esc(label_en)}</span>'
+        f'<h1>{esc(title)}</h1>'
+        "</div></section>\n"
+        '<div class="container"><nav class="breadcrumb" aria-label="パンくずリスト">'
+        f'<a href="index.html">ホーム</a> / <span>{esc(title)}</span></nav></div>'
+    )
+
+
+_SVG = (
+    '<svg class="biz-icon" viewBox="0 0 120 120" width="120" height="120" aria-hidden="true" '
+    'fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'
+)
+
+ICONS: dict[str, str] = {
+    "ai": _SVG
+    + '<circle cx="60" cy="22" r="9"/><circle cx="24" cy="60" r="9"/><circle cx="96" cy="60" r="9"/>'
+    '<circle cx="42" cy="98" r="9"/><circle cx="78" cy="98" r="9"/><circle cx="60" cy="60" r="7"/>'
+    '<path d="M54 29 29 52M66 29l25 23M33 60h20M67 60h20M56 66 46 90M64 66l10 24M51 98h18"/></svg>',
+    "consulting": _SVG
+    + '<circle cx="60" cy="60" r="44"/><circle cx="60" cy="60" r="4"/>'
+    '<path d="m82 38-12 28-28 16 12-28z"/><path d="M60 10v8M60 102v8M10 60h8M102 60h8"/></svg>',
+    "system": _SVG
+    + '<rect x="14" y="14" width="64" height="46" rx="3"/><path d="M14 26h64"/>'
+    '<rect x="34" y="40" width="64" height="46" rx="3"/><path d="M34 52h64"/>'
+    '<rect x="54" y="66" width="52" height="40" rx="3"/><path d="M54 78h52"/></svg>',
+    "publishing": _SVG
+    + '<path d="M60 36C48 26 30 24 12 28v62c18-4 36-2 48 8 12-10 30-12 48-8V28c-18-4-36-2-48 8z"/>'
+    '<path d="M60 36v62M24 46c10-2 22 0 28 5M24 62c10-2 22 0 28 5M96 46c-10-2-22 0-28 5M96 62c-10-2-22 0-28 5"/></svg>',
+}
+
+
+def body_company() -> str:
+    biz_list = "<ul>" + "".join(f"<li>{esc(b.title)}</li>" for b in BUSINESSES) + "</ul>"
+    rows = [
+        ("商号", esc(SITE["name"])),
+        ("英文社名", esc(SITE["name_en"])),
+        ("設立", esc(SITE["founded"])),
+        ("代表者", esc(SITE["representative"])),
+        ("所在地", esc(SITE["address"])),
+        ("事業内容", biz_list),
+        ("現況", esc(SITE["status"])),
+    ]
+    table = "\n".join(f'<tr><th scope="row">{th}</th><td>{td}</td></tr>' for th, td in rows)
+    return f"""{page_hero("会社紹介", "COMPANY")}
+<section class="section">
+<div class="container">
+{_section_head("Philosophy", "企業理念")}
+<blockquote class="philosophy reveal reveal--zoom"><p>{esc(SITE["philosophy"])}</p></blockquote>
+</div>
+</section>
+
+<section class="section alt">
+<div class="container name-origin">
+{_section_head("Name", "社名の由来", " reveal--left")}
+<div class="reveal reveal--right" style="--d: 1">
+<p><strong>Lead</strong>は「導く」。<strong>Japan</strong>は私たちが拠って立つ国、日本です。</p>
+<p>日本を導き、世界の中で日本の立ち位置を発展させていく。その思いを社名に込めました。</p>
+<p>日本の成長に寄与するかどうか。それが、私たちのあらゆる判断の価値基準です。</p>
+</div>
+</div>
+</section>
+
+<section class="section">
+<div class="container">
+{_section_head("Profile", "会社概要")}
+<table class="company-table reveal">
+{table}
+</table>
+</div>
+</section>"""
+
+
+def body_business() -> str:
+    items = []
+    for i, b in enumerate(BUSINESSES):
+        side = "reveal--left" if i % 2 == 0 else "reveal--right"
+        details = "".join(f"<li>{esc(d)}</li>" for d in b.details)
+        icon = ICONS.get(b.slug, "")
+        items.append(
+            f'<section id="{esc(b.slug)}" class="business-item reveal {side}">\n'
+            f'<div class="business-visual">{icon}</div>\n'
+            '<div class="business-text">'
+            f'<span class="biz-num">{esc(b.number)}</span>'
+            f'<h2>{esc(b.title)}</h2>'
+            f'<span class="biz-en">{esc(b.title_en)}</span>'
+            f'<p>{esc(b.summary)}</p>'
+            f'<ul>{details}</ul>'
+            "</div>\n</section>"
+        )
+    return f"""{page_hero("事業概要", "BUSINESS")}
+<div class="container business-list">
+{chr(10).join(items)}
+</div>"""
+
+
+def body_message() -> str:
+    paras = "\n".join(f"<p>{esc(p)}</p>" for p in MESSAGE)
+    return f"""{page_hero("代表挨拶", "MESSAGE")}
+<section class="section">
+<div class="container message-layout">
+<aside class="message-side reveal reveal--left" aria-hidden="true">
+<img src="static/img/tokyo-skyline.svg" alt="" width="1600" height="600">
+</aside>
+<article class="message-body reveal reveal--right" style="--d: 1">
+<h2>{esc(MESSAGE_TITLE)}</h2>
+{paras}
+<p class="signature"><span>{esc(SITE["name"])}</span> 代表社員 <strong>{esc(SITE["representative"])}</strong></p>
+</article>
+</div>
+</section>"""
+
+
 PAGES: list[Page] = [
     Page(
         filename="index.html",
@@ -117,5 +232,23 @@ PAGES: list[Page] = [
             "コンサルティング、システム開発、出版を通じて、日本の成長に寄与します。"
         ),
         body=body_index,
+    ),
+    Page(
+        filename="company.html",
+        title="会社紹介 | Lead Japan 合同会社",
+        description="Lead Japan 合同会社の企業理念、社名の由来、会社概要をご紹介します。",
+        body=body_company,
+    ),
+    Page(
+        filename="business.html",
+        title="事業概要 | Lead Japan 合同会社",
+        description="AIソリューションの展開、コンサルティング、システム開発、出版。Lead Japan 合同会社の事業をご紹介します。",
+        body=body_business,
+    ),
+    Page(
+        filename="message.html",
+        title="代表挨拶 | Lead Japan 合同会社",
+        description="Lead Japan 合同会社 代表からのご挨拶。",
+        body=body_message,
     ),
 ]
