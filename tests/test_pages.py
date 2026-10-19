@@ -3,9 +3,12 @@ import unittest
 from pathlib import Path
 
 from tests.helpers import ROOT
-from sitegen.content import BUSINESSES, NEWS, NewsItem
-from sitegen.pages import (PAGES, body_business, body_company, body_index, body_message,
-                           news_anchor, news_list_html, page_hero)
+from unittest import mock
+
+from sitegen.content import BUSINESSES, NEWS, PLACEHOLDER, PRIVACY, NewsItem
+from sitegen.pages import (PAGES, body_business, body_company, body_contact, body_index,
+                           body_message, body_news, body_privacy, news_anchor,
+                           news_list_html, page_hero)
 
 
 class IndexPageTests(unittest.TestCase):
@@ -60,10 +63,6 @@ class NewsListTests(unittest.TestCase):
         self.assertNotIn("<x>", out)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class SubPageTests(unittest.TestCase):
     def test_company_table_rows(self):
         b = body_company()
@@ -99,3 +98,38 @@ class SubPageTests(unittest.TestCase):
 
     def test_page_hero_escapes(self):
         self.assertIn("&lt;", page_hero("<", "X"))
+
+
+class NewsPrivacyContactTests(unittest.TestCase):
+    def test_news_anchors_match_list_links(self):
+        b = body_news()
+        for i, item in enumerate(NEWS):
+            a = news_anchor(item, i)
+            self.assertIn(f'id="{a}"', b)
+            self.assertIn(f'href="news.html#{a}"', b)
+
+    def test_privacy_sections(self):
+        b = body_privacy()
+        for heading, _ in PRIVACY:
+            self.assertIn(heading, b)
+        self.assertIn("制定日：2026年10月19日", b)
+
+    def test_contact_no_form_post(self):
+        b = body_contact()
+        self.assertNotIn("<form", b)
+        self.assertIn('href="privacy.html"', b)
+
+    def test_contact_placeholder_email_not_mailto(self):
+        with mock.patch.dict("sitegen.pages.SITE", {"email": PLACEHOLDER}):
+            self.assertNotIn("mailto:", body_contact())
+        with mock.patch.dict("sitegen.pages.SITE", {"email": "info@example.jp"}):
+            self.assertIn('href="mailto:info@example.jp"', body_contact())
+
+    def test_all_seven_pages_registered(self):
+        self.assertEqual([p.filename for p in PAGES],
+                         ["index.html", "company.html", "business.html", "message.html",
+                          "news.html", "privacy.html", "contact.html"])
+
+
+if __name__ == "__main__":
+    unittest.main()

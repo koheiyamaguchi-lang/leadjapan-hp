@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Sequence
 
-from sitegen.content import BUSINESSES, MESSAGE, MESSAGE_TITLE, NEWS, SITE, NewsItem
+from sitegen.content import BUSINESSES, MESSAGE, MESSAGE_TITLE, NEWS, PLACEHOLDER, PRIVACY, SITE, NewsItem
 from sitegen.render import esc
 
 
@@ -223,6 +223,78 @@ def body_message() -> str:
 </section>"""
 
 
+def body_news() -> str:
+    articles = []
+    for i, item in enumerate(NEWS):
+        articles.append(
+            f'<article id="{esc(news_anchor(item, i))}" class="news-article reveal">\n'
+            '<div class="news-meta">'
+            f'<time datetime="{item.date:%Y-%m-%d}">{item.date:%Y.%m.%d}</time>'
+            f'<span class="news-cat">{esc(item.category)}</span></div>\n'
+            f'<h2>{esc(item.title)}</h2>\n'
+            f'<p>{esc(item.body)}</p>\n'
+            "</article>"
+        )
+    return f"""{page_hero("ニュースルーム", "NEWSROOM")}
+<section class="section">
+<div class="container">
+{news_list_html(NEWS)}
+</div>
+</section>
+
+<section class="section alt">
+<div class="container news-articles">
+{chr(10).join(articles)}
+</div>
+</section>"""
+
+
+def body_privacy() -> str:
+    sections = []
+    for n, (heading, paras) in enumerate(PRIVACY, start=1):
+        body = "".join(f"<p>{esc(p)}</p>" for p in paras)
+        sections.append(f"<section>\n<h2>第{n}条　{esc(heading)}</h2>\n{body}\n</section>")
+    return f"""{page_hero("プライバシーポリシー", "PRIVACY POLICY")}
+<section class="section">
+<div class="container policy reveal">
+{chr(10).join(sections)}
+<p class="policy-sign">制定日：2026年10月19日<br>{esc(SITE["name"])} 代表社員 {esc(SITE["representative"])}</p>
+</div>
+</section>"""
+
+
+def body_contact() -> str:
+    email = SITE["email"]
+    if email == PLACEHOLDER:
+        email_html = esc(email)
+    else:
+        email_html = f'<a href="mailto:{esc(email)}">{esc(email)}</a>'
+    categories = "".join(
+        f"<li>{esc(c)}</li>" for c in ("AIソリューション", "コンサルティング", "システム開発", "出版・取材")
+    )
+    btn = (
+        f'<a class="btn" href="mailto:{esc(email)}">メールで問い合わせる</a>'
+        if email != PLACEHOLDER
+        else '<span class="btn is-disabled" aria-disabled="true">メールで問い合わせる</span>'
+    )
+    return f"""{page_hero("お問い合わせ", "CONTACT")}
+<section class="section">
+<div class="container contact reveal">
+<p>事業に関するご相談、取材・出版に関するお問い合わせは、下記のメールアドレスまでご連絡ください。内容を確認のうえ、担当者よりご連絡いたします。</p>
+<dl class="contact-info">
+<dt>メール</dt><dd>{email_html}</dd>
+<dt>所在地</dt><dd>{esc(SITE["address"])}</dd>
+<dt>受付時間</dt><dd>平日 10:00〜18:00（土日祝・年末年始を除く）</dd>
+</dl>
+<p>{btn}</p>
+<!-- 無料の Google フォームを使う場合はここに埋め込みリンクを置く -->
+<h2 class="contact-sub">お問い合わせの例</h2>
+<ul class="contact-cats">{categories}</ul>
+<p class="contact-note">お預かりした個人情報は、お問い合わせへの対応の目的にのみ利用します。詳しくは<a href="privacy.html">プライバシーポリシー</a>をご確認ください。</p>
+</div>
+</section>"""
+
+
 PAGES: list[Page] = [
     Page(
         filename="index.html",
@@ -250,5 +322,23 @@ PAGES: list[Page] = [
         title="代表挨拶 | Lead Japan 合同会社",
         description="Lead Japan 合同会社 代表からのご挨拶。",
         body=body_message,
+    ),
+    Page(
+        filename="news.html",
+        title="ニュースルーム | Lead Japan 合同会社",
+        description="Lead Japan 合同会社からのお知らせ・ニュースをご案内します。",
+        body=body_news,
+    ),
+    Page(
+        filename="privacy.html",
+        title="プライバシーポリシー | Lead Japan 合同会社",
+        description="Lead Japan 合同会社の個人情報の取り扱いについて定めたプライバシーポリシーです。",
+        body=body_privacy,
+    ),
+    Page(
+        filename="contact.html",
+        title="お問い合わせ | Lead Japan 合同会社",
+        description="Lead Japan 合同会社へのお問い合わせ方法のご案内です。",
+        body=body_contact,
     ),
 ]
