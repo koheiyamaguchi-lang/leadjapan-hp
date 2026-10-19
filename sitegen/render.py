@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import html
 
-from sitegen.content import NAV, PLACEHOLDER, SITE
+from sitegen.content import COPYRIGHT, NAV, PLACEHOLDER, SITE
 
 FONTS_URL = (
     "https://fonts.googleapis.com/css2?"
@@ -52,8 +52,8 @@ def render_layout(*, title: str, description: str, body: str, current: str) -> s
 <header class="site-header">
 <div class="container header-inner">
 <a class="logo" href="index.html">Lead Japan <small>合同会社</small></a>
-<input type="checkbox" id="nav-toggle" class="nav-toggle">
-<label for="nav-toggle" class="nav-toggle-label" aria-label="メニューを開く"><span></span></label>
+<input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="メニュー">
+<label for="nav-toggle" class="nav-toggle-label"><span class="visually-hidden">メニュー</span><span></span></label>
 <nav class="global-nav" aria-label="グローバルナビゲーション">
 {nav}
 </nav>
@@ -73,7 +73,7 @@ def render_layout(*, title: str, description: str, body: str, current: str) -> s
 <a href="privacy.html">プライバシーポリシー</a>
 </nav>
 </div>
-<p class="copyright container">© 2026 Lead Japan LLC</p>
+<p class="copyright container">{esc(COPYRIGHT)}</p>
 </footer>
 </body>
 </html>

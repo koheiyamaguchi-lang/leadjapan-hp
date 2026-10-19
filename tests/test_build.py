@@ -3,7 +3,8 @@ import shutil
 import unittest
 
 from tests.helpers import LinkCollector, build_to_tmp
-from build import placeholder_report
+from build import format_warnings, placeholder_report
+from sitegen.content import UNCONFIRMED, NEWS
 
 
 def collect(path: pathlib.Path) -> LinkCollector:
@@ -68,6 +69,23 @@ class BuildTests(unittest.TestCase):
         self.assertTrue(report)
         self.assertTrue(all(v > 0 for v in report.values()))
         self.assertIn("company.html", report)
+
+    def test_format_warnings_lists_unconfirmed(self):
+        out = format_warnings({"company.html": 2})
+        self.assertIn("警告: 【要入力】 が 2 箇所", out)
+        lines = out.splitlines()
+        confirm = [l for l in lines if l.startswith("要確認: ")]
+        self.assertEqual(len(confirm), len(UNCONFIRMED))
+        for item in UNCONFIRMED:
+            self.assertIn(f"要確認: {item}", lines)
+        self.assertLess(lines.index(next(l for l in lines if l.startswith("警告"))), lines.index(confirm[0]))
+
+    def test_unconfirmed_not_rendered(self):
+        for page in self.out.glob("*.html"):
+            self.assertNotIn("要確認", page.read_text(encoding="utf-8"), page.name)
+
+    def test_founding_news_placeholder_not_new_year(self):
+        self.assertNotIn((1, 1), {(n.date.month, n.date.day) for n in NEWS})
 
 
 if __name__ == "__main__":

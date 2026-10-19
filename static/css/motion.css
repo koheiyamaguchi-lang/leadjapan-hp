@@ -58,9 +58,10 @@
   .reveal {
     animation: reveal linear backwards;
     animation-timeline: view();
+    /* Absolute lengths: tall wrappers must not stretch the fade over ~1000px. */
     animation-range:
-      entry calc(var(--d, 0) * 6%)
-      cover calc(30% + var(--d, 0) * 6%);
+      entry calc(var(--d, 0) * 20px)
+      entry calc(80px + var(--d, 0) * 20px);
   }
   .reveal.reveal--left  { animation-name: reveal-left; }
   .reveal.reveal--right { animation-name: reveal-right; }

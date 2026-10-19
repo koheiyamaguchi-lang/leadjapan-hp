@@ -91,6 +91,16 @@ class MotionCssTests(unittest.TestCase):
         self.assertNotRegex(body, r"animation: reveal linear (both|forwards)")
         self.assertGreater(body.index("animation-timeline"), body.index("animation:"))
 
+    def test_reveal_range_is_capped_in_absolute_lengths(self):
+        inside = extract_block(self.css(), SUPPORTS)
+        m = re.search(r"\n  \.reveal \{([^}]*)\}", inside)
+        rng = re.search(r"animation-range:([^;]*);", m.group(1)).group(1)
+        rng = " ".join(rng.split())
+        self.assertIn("entry calc(var(--d, 0) * 20px)", rng)
+        self.assertIn("entry calc(80px + var(--d, 0) * 20px)", rng)
+        self.assertNotIn("cover", rng)
+        self.assertNotIn("%", rng)
+
     def test_hero_copy_rules_exist(self):
         css = self.css()
         self.assertIn(".hero .hero-kicker {", css)

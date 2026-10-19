@@ -4,7 +4,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Sequence
 
-from sitegen.content import BUSINESSES, MESSAGE, MESSAGE_TITLE, NEWS, PLACEHOLDER, PRIVACY, SITE, NewsItem
+from sitegen.content import (
+    BUSINESSES, COMPANY_NAME_ORIGIN, CONTACT_CATEGORIES, CONTACT_HOURS, CONTACT_INTRO, HERO_SUB,
+    MESSAGE, MESSAGE_TITLE, NEWS, NOT_FOUND_TEXT, PAGE_META, PLACEHOLDER, PRIVACY, PRIVACY_ENACTED,
+    SITE, NewsItem,
+)
 from sitegen.render import esc
 
 
@@ -58,7 +62,7 @@ def body_index() -> str:
 <div class="container hero-inner">
 <p class="hero-kicker reveal">{esc(SITE["name_en"])}</p>
 <h1>{esc(SITE["tagline"])}</h1>
-<p class="hero-sub reveal" style="--d: 1">Lead Japan — Tokyo, Japan</p>
+<p class="hero-sub reveal" style="--d: 1">{esc(HERO_SUB)}</p>
 </div>
 <a class="scroll-cue" href="#about" aria-label="下へスクロール"><span>SCROLL</span></a>
 </section>
@@ -143,6 +147,7 @@ ICONS: dict[str, str] = {
 
 
 def body_company() -> str:
+    name_origin = "\n".join(f"<p>{esc(p)}</p>" for p in COMPANY_NAME_ORIGIN)
     biz_list = "<ul>" + "".join(f"<li>{esc(b.title)}</li>" for b in BUSINESSES) + "</ul>"
     rows = [
         ("商号", esc(SITE["name"])),
@@ -166,9 +171,7 @@ def body_company() -> str:
 <div class="container name-origin">
 {_section_head("Name", "社名の由来", " reveal--left")}
 <div class="reveal reveal--right" style="--d: 1">
-<p><strong>Lead</strong>は「導く」。<strong>Japan</strong>は私たちが拠って立つ国、日本です。</p>
-<p>日本を導き、世界の中で日本の立ち位置を発展させていく。その思いを社名に込めました。</p>
-<p>日本の成長に寄与するかどうか。それが、私たちのあらゆる判断の価値基準です。</p>
+{name_origin}
 </div>
 </div>
 </section>
@@ -265,7 +268,7 @@ def body_privacy() -> str:
 <section class="section">
 <div class="container policy reveal">
 {chr(10).join(sections)}
-<p class="policy-sign">制定日：2026年10月19日<br>{esc(SITE["name"])} 代表社員 {esc(SITE["representative"])}</p>
+<p class="policy-sign">制定日：{esc(PRIVACY_ENACTED)}<br>{esc(SITE["name"])} 代表社員 {esc(SITE["representative"])}</p>
 </div>
 </section>"""
 
@@ -277,7 +280,7 @@ def body_contact() -> str:
     else:
         email_html = f'<a href="mailto:{esc(email)}">{esc(email)}</a>'
     categories = "".join(
-        f"<li>{esc(c)}</li>" for c in ("AIソリューション", "コンサルティング", "システム開発", "出版・取材")
+        f"<li>{esc(c)}</li>" for c in CONTACT_CATEGORIES
     )
     btn = (
         f'<a class="btn" href="mailto:{esc(email)}">メールで問い合わせる</a>'
@@ -287,11 +290,11 @@ def body_contact() -> str:
     return f"""{page_hero("お問い合わせ", "CONTACT")}
 <section class="section">
 <div class="container contact reveal">
-<p>事業に関するご相談、取材・出版に関するお問い合わせは、下記のメールアドレスまでご連絡ください。内容を確認のうえ、担当者よりご連絡いたします。</p>
+<p>{esc(CONTACT_INTRO)}</p>
 <dl class="contact-info">
 <dt>メール</dt><dd>{email_html}</dd>
 <dt>所在地</dt><dd>{esc(SITE["address"])}</dd>
-<dt>受付時間</dt><dd>平日 10:00〜18:00（土日祝・年末年始を除く）</dd>
+<dt>受付時間</dt><dd>{esc(CONTACT_HOURS)}</dd>
 </dl>
 <p>{btn}</p>
 <!-- 無料の Google フォームを使う場合はここに埋め込みリンクを置く -->
@@ -306,62 +309,24 @@ def body_404() -> str:
     return f"""{page_hero("ページが見つかりません", "404 NOT FOUND")}
 <section class="section">
 <div class="container">
-<p>お探しのページは移動または削除された可能性があります。URLをご確認のうえ、トップページからあらためてお探しください。</p>
+<p>{esc(NOT_FOUND_TEXT)}</p>
 <p><a class="btn" href="index.html">トップページへ戻る</a></p>
 </div>
 </section>"""
 
 
+_BODIES: dict[str, Callable[[], str]] = {
+    "index.html": body_index,
+    "company.html": body_company,
+    "business.html": body_business,
+    "message.html": body_message,
+    "news.html": body_news,
+    "privacy.html": body_privacy,
+    "contact.html": body_contact,
+    "404.html": body_404,
+}
+
 PAGES: list[Page] = [
-    Page(
-        filename="index.html",
-        title="Lead Japan 合同会社 | 日本を導き、世界へ。",
-        description=(
-            "Lead Japan 合同会社（東京都）の公式サイト。AIソリューションの展開、"
-            "コンサルティング、システム開発、出版を通じて、日本の成長に寄与します。"
-        ),
-        body=body_index,
-    ),
-    Page(
-        filename="company.html",
-        title="会社紹介 | Lead Japan 合同会社",
-        description="Lead Japan 合同会社の企業理念、社名の由来、会社概要をご紹介します。",
-        body=body_company,
-    ),
-    Page(
-        filename="business.html",
-        title="事業概要 | Lead Japan 合同会社",
-        description="AIソリューションの展開、コンサルティング、システム開発、出版。Lead Japan 合同会社の事業をご紹介します。",
-        body=body_business,
-    ),
-    Page(
-        filename="message.html",
-        title="代表挨拶 | Lead Japan 合同会社",
-        description="Lead Japan 合同会社 代表からのご挨拶。",
-        body=body_message,
-    ),
-    Page(
-        filename="news.html",
-        title="ニュースルーム | Lead Japan 合同会社",
-        description="Lead Japan 合同会社からのお知らせ・ニュースをご案内します。",
-        body=body_news,
-    ),
-    Page(
-        filename="privacy.html",
-        title="プライバシーポリシー | Lead Japan 合同会社",
-        description="Lead Japan 合同会社の個人情報の取り扱いについて定めたプライバシーポリシーです。",
-        body=body_privacy,
-    ),
-    Page(
-        filename="contact.html",
-        title="お問い合わせ | Lead Japan 合同会社",
-        description="Lead Japan 合同会社へのお問い合わせ方法のご案内です。",
-        body=body_contact,
-    ),
-    Page(
-        filename="404.html",
-        title="ページが見つかりません | Lead Japan 合同会社",
-        description="お探しのページが見つかりませんでした。トップページからお探しください。",
-        body=body_404,
-    ),
+    Page(filename=name, title=PAGE_META[name][0], description=PAGE_META[name][1], body=body)
+    for name, body in _BODIES.items()
 ]

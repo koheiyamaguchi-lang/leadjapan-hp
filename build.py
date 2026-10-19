@@ -4,6 +4,7 @@ from __future__ import annotations
 import pathlib
 import shutil
 
+from sitegen.content import UNCONFIRMED
 from sitegen.pages import PAGES
 from sitegen.render import find_placeholders, render_layout
 
@@ -42,14 +43,22 @@ def placeholder_report(paths: list[pathlib.Path]) -> dict[str, int]:
     return report
 
 
+def format_warnings(report: dict[str, int], unconfirmed: tuple[str, ...] = UNCONFIRMED) -> str:
+    lines: list[str] = []
+    total = sum(report.values())
+    if total:
+        lines.append(f"警告: 【要入力】 が {total} 箇所残っています ({', '.join(report)})")
+    if unconfirmed:
+        lines.extend(f"要確認: {item}" for item in unconfirmed)
+    return "\n".join(lines)
+
+
 def main() -> None:
     written = build(ROOT / "site")
-    report = placeholder_report(written)
-    total = sum(report.values())
-    files = list(report)
     print(f"{len(written)} ページを site/ に生成しました")
-    if total:
-        print(f"警告: 【要入力】 が {total} 箇所残っています ({', '.join(files)})")
+    warnings = format_warnings(placeholder_report(written))
+    if warnings:
+        print(warnings)
 
 
 if __name__ == "__main__":

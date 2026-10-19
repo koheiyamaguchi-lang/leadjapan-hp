@@ -2,6 +2,7 @@
   --navy: #0b1f3a;
   --navy-2: #13315c;
   --tower: #e8380d;
+  --tower-text: #c4300a;
   --gold: #c8a24a;
   --ink: #1a1a1a;
   --paper: #ffffff;
@@ -78,17 +79,17 @@ a { color: var(--navy-2); }
     display: flex; align-items: center; justify-content: center;
     width: 44px; height: 44px; cursor: pointer; position: relative; z-index: 120;
   }
-  .nav-toggle-label span, .nav-toggle-label span::before, .nav-toggle-label span::after {
+  .nav-toggle-label > span:not(.visually-hidden), .nav-toggle-label > span:not(.visually-hidden)::before, .nav-toggle-label > span:not(.visually-hidden)::after {
     display: block; width: 24px; height: 2px; background: var(--navy);
     position: relative; transition: transform .3s, background .3s;
   }
-  .nav-toggle-label span::before, .nav-toggle-label span::after { content: ""; position: absolute; left: 0; }
-  .nav-toggle-label span::before { top: -8px; }
-  .nav-toggle-label span::after { top: 8px; }
+  .nav-toggle-label > span:not(.visually-hidden)::before, .nav-toggle-label > span:not(.visually-hidden)::after { content: ""; position: absolute; left: 0; }
+  .nav-toggle-label > span:not(.visually-hidden)::before { top: -8px; }
+  .nav-toggle-label > span:not(.visually-hidden)::after { top: 8px; }
   .nav-toggle:focus-visible ~ .nav-toggle-label { outline: 3px solid var(--tower); outline-offset: 2px; }
-  .nav-toggle:checked ~ .nav-toggle-label span { background: transparent; }
-  .nav-toggle:checked ~ .nav-toggle-label span::before { background: #fff; transform: translateY(8px) rotate(45deg); }
-  .nav-toggle:checked ~ .nav-toggle-label span::after { background: #fff; transform: translateY(-8px) rotate(-45deg); }
+  .nav-toggle:checked ~ .nav-toggle-label > span:not(.visually-hidden) { background: transparent; }
+  .nav-toggle:checked ~ .nav-toggle-label > span:not(.visually-hidden)::before { background: #fff; transform: translateY(8px) rotate(45deg); }
+  .nav-toggle:checked ~ .nav-toggle-label > span:not(.visually-hidden)::after { background: #fff; transform: translateY(-8px) rotate(-45deg); }
   .global-nav {
     display: none;
     position: fixed; inset: 0; z-index: 110;
@@ -114,7 +115,7 @@ a { color: var(--navy-2); }
 .section { padding: clamp(64px, 10vw, 120px) 0; }
 .section.alt { background: var(--mist); }
 .section-label {
-  display: block; color: var(--tower); font-size: .8rem; font-weight: 700;
+  display: block; color: var(--tower-text); font-size: .8rem; font-weight: 700;
   letter-spacing: .2em; text-transform: uppercase; margin-bottom: 8px;
 }
 .section-title { font-size: clamp(1.6rem, 3.5vw, 2.4rem); color: var(--navy); }
@@ -222,7 +223,7 @@ a { color: var(--navy-2); }
   font-size: clamp(2.6rem, 4vw, 3.4rem); line-height: 1; margin-bottom: 20px;
 }
 .biz-title { font-size: 1.15rem; color: var(--navy); margin: 0 0 4px; }
-.biz-en { font-size: .75rem; letter-spacing: .15em; color: var(--tower); text-transform: uppercase; }
+.biz-en { font-size: .75rem; letter-spacing: .15em; color: var(--tower-text); text-transform: uppercase; }
 .biz-summary { font-size: .92rem; margin: 16px 0 24px; flex: 1; }
 .biz-more { font-size: .85rem; font-weight: 700; color: var(--navy-2); }
 .biz-more::after { content: " →"; display: inline-block; transition: transform .3s ease; }
@@ -248,11 +249,11 @@ a { color: var(--navy-2); }
 }
 .news-list time { font-variant-numeric: tabular-nums; color: var(--navy-2); font-size: .9rem; letter-spacing: .05em; }
 .news-cat {
-  font-size: .72rem; font-weight: 700; color: var(--tower);
+  font-size: .72rem; font-weight: 700; color: var(--tower-text);
   border: 1px solid var(--tower); padding: 0 10px; line-height: 1.8;
 }
 .news-list a { flex-basis: 100%; color: var(--ink); text-decoration: none; }
-.news-list a:hover { color: var(--tower); text-decoration: underline; }
+.news-list a:hover { color: var(--tower-text); text-decoration: underline; }
 @media (min-width: 640px) { .news-list a { flex-basis: auto; flex: 1; } }
 
 /* Contact CTA band */
@@ -314,7 +315,7 @@ a { color: var(--navy-2); }
 }
 .business-visual .biz-icon { width: 140px; height: 140px; }
 .business-text h2 { color: var(--navy); font-size: clamp(1.4rem, 3vw, 2rem); margin-bottom: .2em; }
-.business-text .biz-num { display: block; color: var(--tower); font-family: "Noto Serif JP", serif; font-size: 2.4rem; font-weight: 700; line-height: 1; }
+.business-text .biz-num { display: block; color: var(--tower-text); font-family: "Noto Serif JP", serif; font-size: 2.4rem; font-weight: 700; line-height: 1; }
 .business-text .biz-en { display: block; color: #555; letter-spacing: .1em; margin-bottom: 1em; font-size: .9rem; }
 .business-text ul { padding-left: 1.2em; margin: 0; }
 @media (min-width: 900px) {
@@ -358,3 +359,8 @@ a { color: var(--navy-2); }
 .contact-note { font-size: .9rem; margin-top: 2rem; }
 .btn.is-disabled { opacity: .55; cursor: not-allowed; }
 .btn.is-disabled:hover { background: var(--navy); border-color: var(--navy); }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
