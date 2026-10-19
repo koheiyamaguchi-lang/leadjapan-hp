@@ -1,0 +1,100 @@
+/* Motion: CSS only. Content is always visible unless the browser supports
+   scroll-driven animations (hidden "from" state lives inside @supports). */
+
+/* ===== Hero load animation (all browsers) ===== */
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes hero-zoom {
+  from { transform: scale(1.08); }
+  to   { transform: scale(1); }
+}
+@keyframes hero-cue {
+  0%   { transform: scaleY(0); transform-origin: top; }
+  50%  { transform: scaleY(1); transform-origin: top; }
+  51%  { transform: scaleY(1); transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
+
+/* .hero-kicker / .hero-sub also carry .reveal; these selectors are more
+   specific than .reveal, so the hero load animation wins everywhere. */
+.hero .hero-kicker { animation: hero-rise 900ms cubic-bezier(.2, .7, .2, 1) both; }
+.hero h1           { animation: hero-rise 900ms cubic-bezier(.2, .7, .2, 1) 150ms both; }
+.hero .hero-sub    { animation: hero-rise 900ms cubic-bezier(.2, .7, .2, 1) 300ms both; }
+.hero .hero-skyline {
+  animation: hero-zoom 2.4s cubic-bezier(.2, .7, .2, 1) both;
+  transform-origin: 66% 100%;
+}
+.scroll-cue::after { animation: hero-cue 2.2s ease-in-out infinite; }
+
+/* ===== Scroll-driven motion (Chromium / Safari 26+) ===== */
+@supports (animation-timeline: view()) {
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(48px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes reveal-left {
+    from { opacity: 0; transform: translateX(-64px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes reveal-right {
+    from { opacity: 0; transform: translateX(64px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes reveal-zoom {
+    from { opacity: 0; transform: scale(.92); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes skyline-parallax {
+    from { translate: 0 0; }
+    to   { translate: 0 80px; }
+  }
+  @keyframes progress-grow {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  .reveal {
+    animation: reveal linear both;
+    animation-timeline: view();
+    animation-range:
+      entry calc(var(--d, 0) * 6%)
+      cover calc(30% + var(--d, 0) * 6%);
+  }
+  .reveal.reveal--left  { animation-name: reveal-left; }
+  .reveal.reveal--right { animation-name: reveal-right; }
+  .reveal.reveal--zoom  { animation-name: reveal-zoom; }
+
+  /* Hero copy (.hero .hero-kicker/.hero-sub) out-specifies .reveal above, so
+     it keeps its load animation and ends visible. */
+
+  /* Skyline: load zoom (transform) + scroll parallax (translate) together. */
+  .hero .hero-skyline {
+    animation:
+      hero-zoom 2.4s cubic-bezier(.2, .7, .2, 1) both,
+      skyline-parallax linear both;
+    animation-timeline: auto, scroll(root);
+    animation-range: normal, 0 100vh;
+  }
+
+  /* Reading progress bar under the header */
+  .site-header::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+    background: var(--tower);
+    transform: scaleX(0); transform-origin: left;
+    animation: progress-grow linear both;
+    animation-timeline: scroll(root);
+    pointer-events: none;
+  }
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .reveal { opacity: 1 !important; transform: none !important; }
+}
