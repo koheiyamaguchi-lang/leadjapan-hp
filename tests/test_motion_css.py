@@ -82,6 +82,20 @@ class MotionCssTests(unittest.TestCase):
         css = strip_comments(read("static/css/style.css"))
         self.assertNotRegex(css, r"\.reveal[^{]*\{[^}]*opacity:\s*0")
 
+    def test_reveal_rule_order_and_fill(self):
+        inside = extract_block(self.css(), SUPPORTS)
+        m = re.search(r"\n  \.reveal \{([^}]*)\}", inside)
+        self.assertTrue(m)
+        body = m.group(1)
+        self.assertIn("animation: reveal linear backwards", body)
+        self.assertNotRegex(body, r"animation: reveal linear (both|forwards)")
+        self.assertGreater(body.index("animation-timeline"), body.index("animation:"))
+
+    def test_hero_copy_rules_exist(self):
+        css = self.css()
+        self.assertIn(".hero .hero-kicker {", css)
+        self.assertIn(".hero .hero-sub", css)
+
     def test_helpers(self):
         css = "@a{x{y:1}} @keyframes hero-a{from{opacity: 0}} @keyframes b{}"
         self.assertEqual(extract_block(css, "@a"), "@a{x{y:1}}")
