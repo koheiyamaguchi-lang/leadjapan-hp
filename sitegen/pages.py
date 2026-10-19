@@ -249,10 +249,17 @@ def body_news() -> str:
 </section>"""
 
 
+CONTACT_LABEL = "お問い合わせページ"
+CONTACT_LINK = f'<a href="contact.html">{CONTACT_LABEL}</a>'
+
+
 def body_privacy() -> str:
     sections = []
     for n, (heading, paras) in enumerate(PRIVACY, start=1):
-        body = "".join(f"<p>{esc(p)}</p>" for p in paras)
+        # Only the contact-page pointer becomes a link; all text stays escaped.
+        body = "".join(
+            f"<p>{esc(p).replace(CONTACT_LABEL, CONTACT_LINK)}</p>" for p in paras
+        )
         sections.append(f"<section>\n<h2>第{n}条　{esc(heading)}</h2>\n{body}\n</section>")
     return f"""{page_hero("プライバシーポリシー", "PRIVACY POLICY")}
 <section class="section">

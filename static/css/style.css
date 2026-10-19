@@ -10,6 +10,9 @@
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
+/* clip (not hidden): no scroll container, so sticky/anchors keep working;
+   stops reveal translateX / hero zoom from widening the page. */
+main { overflow-x: clip; }
 body {
   margin: 0;
   font-family: "Noto Sans JP", sans-serif;

@@ -96,6 +96,13 @@ class MotionCssTests(unittest.TestCase):
         self.assertIn(".hero .hero-kicker {", css)
         self.assertIn(".hero .hero-sub", css)
 
+    def test_main_clips_horizontal_overflow(self):
+        css = strip_comments(read("static/css/style.css"))
+        self.assertRegex(css, r"(?m)^main\s*\{[^}]*overflow-x:\s*clip")
+        for sel in ("html", "body"):
+            m = re.search(r"(?m)^" + sel + r"\s*\{([^}]*)\}", css)
+            self.assertNotIn("overflow-x: hidden", m.group(1) if m else "")
+
     def test_helpers(self):
         css = "@a{x{y:1}} @keyframes hero-a{from{opacity: 0}} @keyframes b{}"
         self.assertEqual(extract_block(css, "@a"), "@a{x{y:1}}")

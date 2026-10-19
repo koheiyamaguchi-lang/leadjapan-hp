@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 import unittest
 
 from tests.helpers import LinkCollector, build_to_tmp
@@ -15,6 +16,7 @@ class BuildTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.out = build_to_tmp()
+        cls.addClassCleanup(shutil.rmtree, cls.out, ignore_errors=True)
 
     def test_writes_all_pages(self):
         names = sorted(p.name for p in self.out.glob("*.html"))

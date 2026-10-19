@@ -114,6 +114,9 @@ class NewsPrivacyContactTests(unittest.TestCase):
             self.assertIn(heading, b)
         self.assertIn("制定日：2026年10月19日", b)
 
+    def test_privacy_links_to_contact_page(self):
+        self.assertIn('<a href="contact.html">お問い合わせページ</a>', body_privacy())
+
     def test_privacy_enactment_date_once(self):
         self.assertEqual(body_privacy().count("制定日"), 1)
 
