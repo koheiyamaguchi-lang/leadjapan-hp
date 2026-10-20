@@ -2,3 +2,7 @@ site/
 __pycache__/
 .DS_Store
 .superpowers/
+cms/db.sqlite3
+cms/media/
+site 2/
+.claude/
