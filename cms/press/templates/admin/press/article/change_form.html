@@ -1,0 +1,9 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block object-tools-items %}
+{% if original.pk %}
+<li><a href="{% url 'press:preview' original.pk %}" target="_blank" rel="noopener">プレビュー</a></li>
+{% endif %}
+{{ block.super }}
+{% endblock %}
