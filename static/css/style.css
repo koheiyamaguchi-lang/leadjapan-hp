@@ -157,17 +157,23 @@ a { color: var(--navy-2); }
   color: #fff;
   background: #071629;
 }
+/* Navy veil over the photo so the white copy stays readable */
 .hero-sky {
-  position: absolute; inset: 0; z-index: -2;
+  position: absolute; inset: 0; z-index: -1;
   background:
-    radial-gradient(ellipse 60% 45% at 66% 92%, rgba(232, 56, 13, .28), transparent 70%),
-    radial-gradient(ellipse 80% 40% at 50% 100%, rgba(200, 162, 74, .14), transparent 70%),
-    linear-gradient(180deg, #050f20 0%, var(--navy) 30%, var(--navy-2) 68%, #2a4a7a 100%);
+    linear-gradient(180deg, rgba(5, 15, 32, .72) 0%, rgba(5, 15, 32, .38) 42%,
+      rgba(5, 15, 32, .12) 68%, rgba(5, 15, 32, .55) 100%);
 }
 .hero-skyline {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: -1;
-  width: 100%; height: 80%; max-width: none;
-  object-fit: cover; object-position: 66% 100%;
+  position: absolute; inset: 0; z-index: -2;
+  width: 100%; height: 100%; max-width: none;
+  object-fit: cover; object-position: 22% 70%;
+}
+/* Wide screens: the tower stands on the left, so the copy sits on the right */
+@media (min-width: 900px) {
+  .hero-inner { text-align: right; }
+  .hero .hero-inner > * { max-width: 55%; margin-left: auto; }
+  .hero-kicker { justify-content: flex-end; }
 }
 .hero-inner { position: relative; width: 100%; }
 .hero-kicker {

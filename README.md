@@ -183,3 +183,8 @@ Markdown の書き方:
 - プライバシーポリシーの文面は草案です。公開前に内容を確認してください。
 - スクロール演出は Chrome / Edge / Safari 26 以降で動作します。それ以外のブラウザでは、演出なしでコンテンツが静的に表示されます。
 - 独自ドメインを後で使う場合は、ドメイン取得費用のみ有料です（任意）。GitHub Pages の設定でカスタムドメインを指定し、DNS の設定を行ってください。
+
+## 画像のクレジット
+
+- トップページの写真: Louie Martinez / Unsplash（[Unsplash ライセンス](https://unsplash.com/license)、商用利用可・クレジット表記は任意）。元画像: https://unsplash.com/photos/IocJwyqRv3M
+- 写真を差し替えるときは `static/img/hero-tokyo.jpg` を同じ名前で置き換えます（横長・1920px 程度・800KB 未満）。

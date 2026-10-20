@@ -24,7 +24,7 @@
 .hero .hero-sub    { animation: hero-rise 900ms cubic-bezier(.2, .7, .2, 1) 300ms both; }
 .hero .hero-skyline {
   animation: hero-zoom 2.4s cubic-bezier(.2, .7, .2, 1) both;
-  transform-origin: 66% 100%;
+  transform-origin: 22% 70%;
 }
 .scroll-cue::after { animation: hero-cue 2.2s ease-in-out infinite; }
 

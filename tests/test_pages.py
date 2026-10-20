@@ -21,9 +21,14 @@ class IndexPageTests(unittest.TestCase):
     def test_index_hero(self):
         b = body_index()
         self.assertIn("<h1>日本を導き、世界へ。</h1>", b)
-        self.assertIn('src="static/img/tokyo-skyline.svg"', b)
+        self.assertIn('src="static/img/hero-tokyo.jpg"', b)
         self.assertIn('alt="東京タワーと東京の街並み"', b)
         self.assertIn("Lead Japan — Tokyo, Japan", b)
+
+    def test_hero_photo_is_light_enough(self):
+        photo = ROOT / "static/img/hero-tokyo.jpg"
+        self.assertTrue(photo.exists())
+        self.assertLess(photo.stat().st_size, 800 * 1024)
 
     def test_index_links_all_businesses(self):
         b = body_index()

@@ -61,8 +61,9 @@ def body_index() -> str:
         for i, b in enumerate(BUSINESSES)
     )
     return f"""<section class="section hero">
+<!-- Photo: Louie Martinez / Unsplash (Unsplash License) https://unsplash.com/photos/IocJwyqRv3M -->
+<img class="hero-skyline" src="static/img/hero-tokyo.jpg" alt="東京タワーと東京の街並み" width="1920" height="1278" fetchpriority="high">
 <div class="hero-sky" aria-hidden="true"></div>
-<img class="hero-skyline" src="static/img/tokyo-skyline.svg" alt="東京タワーと東京の街並み" width="1600" height="600">
 <div class="container hero-inner">
 <p class="hero-kicker reveal">{esc(SITE["name_en"])}</p>
 <h1>{esc(SITE["tagline"])}</h1>
