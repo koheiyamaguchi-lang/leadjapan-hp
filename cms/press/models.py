@@ -51,7 +51,11 @@ class Article(models.Model):
         if self.image:
             if not self.image_alt.strip():
                 errors["image_alt"] = "画像を設定する場合は代替テキストが必要です"
-            if self.image.size > MAX_IMAGE_BYTES:
+            try:
+                too_big = self.image.size > MAX_IMAGE_BYTES
+            except OSError:  # stored file missing/unreadable: skip the size check
+                too_big = False
+            if too_big:
                 errors["image"] = "画像は5MB以下にしてください"
         if errors:
             raise ValidationError(errors)
