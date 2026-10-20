@@ -15,6 +15,11 @@ class RenderTests(unittest.TestCase):
         self.assertIn('href="privacy.html"', html)
         self.assertIn("© 2026 Lead Japan LLC", html)
 
+    def test_head_extra_inserted_before_head_close(self):
+        html = render_layout(title="t", description="d", body="", current="x.html", head_extra="<meta x>")
+        self.assertIn("<meta x>\n</head>", html)
+        self.assertNotIn("<meta x>", render_layout(title="t", description="d", body="", current="x.html"))
+
     def test_layout_escapes_title_and_description(self):
         html = render_layout(title='A<b>&"', description='<x>', body="", current="index.html")
         self.assertIn("<title>A&lt;b&gt;&amp;&quot;</title>", html)

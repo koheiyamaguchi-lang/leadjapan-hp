@@ -28,7 +28,8 @@ def _nav_links(current: str | None) -> str:
     return "\n".join(items)
 
 
-def render_layout(*, title: str, description: str, body: str, current: str) -> str:
+def render_layout(*, title: str, description: str, body: str, current: str,
+                  head_extra: str = "") -> str:
     nav = _nav_links(current)
     footer_links = "\n".join(
         f'<a href="{esc(f)}">{esc(label)}</a>' for f, label in NAV
@@ -46,6 +47,7 @@ def render_layout(*, title: str, description: str, body: str, current: str) -> s
 <link rel="stylesheet" href="{FONTS_URL}">
 <link rel="stylesheet" href="static/css/style.css">
 <link rel="stylesheet" href="static/css/motion.css">
+{head_extra}
 </head>
 <body>
 <a class="skip-link" href="#main">本文へスキップ</a>

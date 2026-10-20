@@ -1,10 +1,13 @@
 import pathlib
 import shutil
+import tempfile
 import unittest
+from unittest import mock
 
 from tests.helpers import LinkCollector, build_to_tmp
-from build import format_warnings, placeholder_report
+from build import build, format_warnings, placeholder_report
 from sitegen.content import UNCONFIRMED, NEWS
+from sitegen.pages import PAGES, article_pages
 
 
 def collect(path: pathlib.Path) -> LinkCollector:
@@ -22,7 +25,30 @@ class BuildTests(unittest.TestCase):
     def test_writes_all_pages(self):
         names = sorted(p.name for p in self.out.glob("*.html"))
         self.assertEqual(names, sorted(["index.html", "company.html", "business.html", "message.html",
-                                        "news.html", "privacy.html", "contact.html", "404.html"]))
+                                        "news.html", "privacy.html", "contact.html", "404.html"]
+                                       + [f"news-{n.slug}.html" for n in NEWS]))
+
+    def test_article_pages_written_and_linked(self):
+        for item in NEWS:
+            name = f"news-{item.slug}.html"
+            self.assertTrue((self.out / name).exists(), name)
+            self.assertIn(f'href="{name}"', (self.out / "news.html").read_text(encoding="utf-8"))
+            self.assertIn(f'href="{name}"', (self.out / "index.html").read_text(encoding="utf-8"))
+            page = (self.out / name).read_text(encoding="utf-8")
+            self.assertIn('<a href="news.html" aria-current="page">', page)
+            self.assertEqual(page.count('aria-current="page"'), 1)
+            self.assertIn('property="og:title"', page)
+
+    def test_unpublished_article_has_no_page_or_link(self):
+        kept = NEWS[:2]
+        pages = [p for p in PAGES if not p.filename.startswith("news-")] + article_pages(kept)
+        out = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        with mock.patch("sitegen.pages.NEWS", kept):
+            build(out, pages)
+        self.assertFalse((out / "news-founding.html").exists())
+        for page in out.glob("*.html"):
+            self.assertNotIn('href="news-founding.html"', page.read_text(encoding="utf-8"), page.name)
 
     def test_static_copied(self):
         self.assertTrue((self.out / "static/css/style.css").exists())

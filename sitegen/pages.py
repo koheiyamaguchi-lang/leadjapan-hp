@@ -7,7 +7,7 @@ from typing import Callable, Sequence
 from sitegen.content import (
     BUSINESSES, COMPANY_NAME_ORIGIN, CONTACT_CATEGORIES, CONTACT_HOURS, CONTACT_INTRO, HERO_SUB,
     MESSAGE, MESSAGE_TITLE, NEWS, NOT_FOUND_TEXT, PAGE_META, PLACEHOLDER, PRIVACY, PRIVACY_ENACTED,
-    SITE, NewsItem,
+    SITE, SITE_URL, NewsItem,
 )
 from sitegen.render import esc
 
@@ -18,20 +18,22 @@ class Page:
     title: str
     description: str
     body: Callable[[], str]
+    nav_current: str | None = None
+    head_extra: str = ""
 
 
-def news_anchor(item: NewsItem, index: int) -> str:
-    """Anchor id for a news item; index is its position in the (newest-first) list."""
-    return f"news-{item.date:%Y%m%d}-{index}"
+def news_page_filename(item: NewsItem) -> str:
+    return f"news-{item.slug}.html"
 
 
-def news_list_html(items: Sequence[NewsItem]) -> str:
+def news_list_html(items: Sequence[NewsItem], *, with_summary: bool = False) -> str:
     rows = []
-    for i, item in enumerate(items):
+    for item in items:
+        summary = f'<p class="news-summary">{esc(item.summary)}</p>' if with_summary else ""
         rows.append(
             f'<li><time datetime="{item.date:%Y-%m-%d}">{item.date:%Y.%m.%d}</time>'
             f'<span class="news-cat">{esc(item.category)}</span>'
-            f'<a href="news.html#{esc(news_anchor(item, i))}">{esc(item.title)}</a></li>'
+            f'<a href="{esc(news_page_filename(item))}">{esc(item.title)}</a>{summary}</li>'
         )
     return '<ul class="news-list">\n' + "\n".join(rows) + "\n</ul>"
 
@@ -112,14 +114,22 @@ def body_index() -> str:
 </section>"""
 
 
-def page_hero(title: str, label_en: str) -> str:
+def page_hero(
+    title: str, label_en: str, crumbs: Sequence[tuple[str, str | None]] | None = None
+) -> str:
+    """crumbs: (label, href-or-None) after ホーム; default is just the page title."""
+    trail = crumbs if crumbs is not None else [(title, None)]
+    parts = ['<a href="index.html">ホーム</a>']
+    for label, href in trail:
+        parts.append(f'<a href="{esc(href)}">{esc(label)}</a>' if href else f"<span>{esc(label)}</span>")
     return (
         '<section class="page-hero"><div class="container">'
         f'<span class="section-label">{esc(label_en)}</span>'
         f'<h1>{esc(title)}</h1>'
         "</div></section>\n"
         '<div class="container"><nav class="breadcrumb" aria-label="パンくずリスト">'
-        f'<a href="index.html">ホーム</a> / <span>{esc(title)}</span></nav></div>'
+        + " / ".join(parts)
+        + "</nav></div>"
     )
 
 
@@ -227,29 +237,59 @@ def body_message() -> str:
 
 
 def body_news() -> str:
-    articles = []
-    for i, item in enumerate(NEWS):
-        articles.append(
-            f'<article id="{esc(news_anchor(item, i))}" class="news-article reveal">\n'
-            '<div class="news-meta">'
-            f'<time datetime="{item.date:%Y-%m-%d}">{item.date:%Y.%m.%d}</time>'
-            f'<span class="news-cat">{esc(item.category)}</span></div>\n'
-            f'<h2>{esc(item.title)}</h2>\n'
-            f'<p>{esc(item.summary)}</p>\n'
-            "</article>"
-        )
     return f"""{page_hero("ニュースルーム", "NEWSROOM")}
 <section class="section">
-<div class="container">
-{news_list_html(NEWS)}
-</div>
-</section>
-
-<section class="section alt">
 <div class="container news-articles">
-{chr(10).join(articles)}
+{news_list_html(NEWS, with_summary=True)}
 </div>
 </section>"""
+
+
+def body_news_article(item: NewsItem, *, image_src: str | None = None) -> str:
+    src = image_src if image_src is not None else item.image
+    figure = (
+        f'<figure class="article-image"><img src="{esc(src)}" alt="{esc(item.image_alt)}"></figure>\n'
+        if src
+        else ""
+    )
+    contact = ""
+    if item.category == "プレスリリース":
+        contact = (
+            '<aside class="press-contact">\n'
+            "<h3>本件に関するお問い合わせ</h3>\n"
+            f'<p>{esc(SITE["name"])}<br><a href="contact.html">お問い合わせページ</a></p>\n'
+            "</aside>\n"
+        )
+    crumbs = [("ニュースルーム", "news.html"), (item.title, None)]
+    return f"""{page_hero("ニュースルーム", "NEWSROOM", crumbs)}
+<section class="section">
+<div class="container news-articles">
+<article class="news-article">
+<div class="news-meta"><time datetime="{item.date:%Y-%m-%d}">{item.date:%Y.%m.%d}</time><span class="news-cat">{esc(item.category)}</span></div>
+<h2 class="article-title">{esc(item.title)}</h2>
+{figure}<div class="article-body">{item.body_html}</div>
+{contact}</article>
+<p class="article-back"><a href="news.html">ニュース一覧へ戻る</a></p>
+</div>
+</section>"""
+
+
+def og_tags(item: NewsItem, site_url: str) -> str:
+    def tag(prop: str, value: str) -> str:
+        return f'<meta property="{prop}" content="{esc(value)}">'
+
+    tags = [
+        tag("og:title", item.title),
+        tag("og:description", item.summary),
+        tag("og:type", "article"),
+        tag("og:site_name", "Lead Japan 合同会社"),
+    ]
+    if site_url:
+        base = site_url.rstrip("/") + "/"
+        tags.append(tag("og:url", base + news_page_filename(item)))
+        if item.image:
+            tags.append(tag("og:image", base + item.image))
+    return "\n".join(tags)
 
 
 CONTACT_LABEL = "お問い合わせページ"
@@ -330,3 +370,22 @@ PAGES: list[Page] = [
     Page(filename=name, title=PAGE_META[name][0], description=PAGE_META[name][1], body=body)
     for name, body in _BODIES.items()
 ]
+
+
+def article_pages(items: Sequence[NewsItem] | None = None) -> list[Page]:
+    """One Page per news item. Reads NEWS at call time when items is None."""
+    items = NEWS if items is None else items
+    return [
+        Page(
+            filename=news_page_filename(item),
+            title=f"{item.title} | Lead Japan 合同会社",
+            description=item.summary,
+            body=lambda item=item: body_news_article(item),
+            nav_current="news.html",
+            head_extra=og_tags(item, SITE_URL),
+        )
+        for item in items
+    ]
+
+
+PAGES.extend(article_pages())

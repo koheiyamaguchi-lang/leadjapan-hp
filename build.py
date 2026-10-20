@@ -3,27 +3,29 @@ from __future__ import annotations
 
 import pathlib
 import shutil
+from typing import Sequence
 
 from sitegen.content import UNCONFIRMED
-from sitegen.pages import PAGES
+from sitegen.pages import PAGES, Page
 from sitegen.render import find_placeholders, render_layout
 
 ROOT = pathlib.Path(__file__).resolve().parent
 STATIC = ROOT / "static"
 
 
-def build(out_dir: pathlib.Path) -> list[pathlib.Path]:
+def build(out_dir: pathlib.Path, pages: Sequence[Page] | None = None) -> list[pathlib.Path]:
     out_dir = pathlib.Path(out_dir)
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
     written: list[pathlib.Path] = []
-    for page in PAGES:
+    for page in (PAGES if pages is None else pages):
         html = render_layout(
             title=page.title,
             description=page.description,
             body=page.body(),
-            current=page.filename,
+            current=page.nav_current or page.filename,
+            head_extra=page.head_extra,
         )
         path = out_dir / page.filename
         path.write_text(html, encoding="utf-8")
