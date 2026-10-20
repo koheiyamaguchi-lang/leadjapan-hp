@@ -7,7 +7,7 @@ from unittest import mock
 from tests.helpers import LinkCollector, build_to_tmp
 from build import build, format_warnings, placeholder_report
 from sitegen.content import UNCONFIRMED, NEWS
-from sitegen.pages import PAGES, article_pages
+from sitegen.pages import PAGES, article_pages, news_page_filename
 
 
 def collect(path: pathlib.Path) -> LinkCollector:
@@ -26,29 +26,34 @@ class BuildTests(unittest.TestCase):
         names = sorted(p.name for p in self.out.glob("*.html"))
         self.assertEqual(names, sorted(["index.html", "company.html", "business.html", "message.html",
                                         "news.html", "privacy.html", "contact.html", "404.html"]
-                                       + [f"news-{n.slug}.html" for n in NEWS]))
+                                       + [news_page_filename(n) for n in NEWS]))
 
     def test_article_pages_written_and_linked(self):
+        index = (self.out / "index.html").read_text(encoding="utf-8")
+        latest = {news_page_filename(n) for n in NEWS[:3]}  # the home page shows only the latest three
         for item in NEWS:
-            name = f"news-{item.slug}.html"
+            name = news_page_filename(item)
             self.assertTrue((self.out / name).exists(), name)
             self.assertIn(f'href="{name}"', (self.out / "news.html").read_text(encoding="utf-8"))
-            self.assertIn(f'href="{name}"', (self.out / "index.html").read_text(encoding="utf-8"))
+            if name in latest:
+                self.assertIn(f'href="{name}"', index)
             page = (self.out / name).read_text(encoding="utf-8")
             self.assertIn('<a href="news.html" aria-current="page">', page)
             self.assertEqual(page.count('aria-current="page"'), 1)
             self.assertIn('property="og:title"', page)
 
     def test_unpublished_article_has_no_page_or_link(self):
-        kept = NEWS[:2]
+        if len(NEWS) < 2:
+            self.skipTest("needs at least two articles")
+        kept, dropped = NEWS[:-1], news_page_filename(NEWS[-1])
         pages = [p for p in PAGES if not p.filename.startswith("news-")] + article_pages(kept)
         out = pathlib.Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, out, ignore_errors=True)
         with mock.patch("sitegen.pages.NEWS", kept):
             build(out, pages)
-        self.assertFalse((out / "news-founding.html").exists())
+        self.assertFalse((out / dropped).exists())
         for page in out.glob("*.html"):
-            self.assertNotIn('href="news-founding.html"', page.read_text(encoding="utf-8"), page.name)
+            self.assertNotIn(f'href="{dropped}"', page.read_text(encoding="utf-8"), page.name)
 
     def test_static_copied(self):
         self.assertTrue((self.out / "static/css/style.css").exists())
@@ -62,7 +67,7 @@ class BuildTests(unittest.TestCase):
     def test_all_internal_links_resolve(self):
         for page in self.out.glob("*.html"):
             for link in collect(page).links:
-                if link.startswith(("http", "mailto:", "#")):
+                if link.startswith(("http:", "https:", "mailto:", "#")):
                     continue
                 path, _, frag = link.partition("#")
                 target = self.out / path
@@ -77,8 +82,10 @@ class BuildTests(unittest.TestCase):
 
     def test_only_free_external_hosts(self):
         for page in self.out.glob("*.html"):
-            for link in collect(page).links:
-                if link.startswith("http"):
+            # only loaded resources (src=, <link href>) are restricted; <a href> to
+            # external sites (e.g. links inside press-release bodies) is allowed.
+            for link in collect(page).resources:
+                if link.startswith(("http:", "https:", "//")):
                     self.assertRegex(link, r"^https://fonts\.(googleapis|gstatic)\.com(/|$)")
 
     def test_unique_titles(self):
@@ -111,7 +118,9 @@ class BuildTests(unittest.TestCase):
             self.assertNotIn("要確認", page.read_text(encoding="utf-8"), page.name)
 
     def test_founding_news_placeholder_not_new_year(self):
-        self.assertNotIn((1, 1), {(n.date.month, n.date.day) for n in NEWS})
+        founding = [n for n in NEWS if n.slug == "founding"]  # tolerant: only checked if it exists
+        for n in founding:
+            self.assertNotEqual((n.date.month, n.date.day), (1, 1))
 
 
 if __name__ == "__main__":

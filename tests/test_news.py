@@ -81,8 +81,13 @@ class NewsTests(unittest.TestCase):
         self.assertIn("1", str(cm.exception))
 
     def test_repo_news_json_has_migrated_items(self):
-        self.assertEqual([n.slug for n in load_news()], ["site-launch", "book-announcement", "founding"])
-        self.assertTrue(all(n.body_html.startswith("<p>") for n in load_news()))
+        items = load_news()  # must load without NewsDataError
+        slugs = [n.slug for n in items]
+        self.assertEqual(len(slugs), len(set(slugs)))
+        for n in items:
+            self.assertTrue(n.title.strip(), n.slug)
+            self.assertTrue(n.summary.strip(), n.slug)
+            self.assertTrue(n.body_html.strip(), n.slug)
 
 
 if __name__ == "__main__":

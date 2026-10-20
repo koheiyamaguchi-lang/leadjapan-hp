@@ -9,7 +9,7 @@ from sitegen.content import BUSINESSES, NEWS, PLACEHOLDER, PRIVACY, SITE, NewsIt
 from sitegen.render import esc
 from sitegen.pages import (PAGES, body_business, body_company, body_contact, body_index,
                            body_message, body_news, body_news_article,
-                           body_privacy, article_pages, news_list_html, og_tags,
+                           body_privacy, article_pages, news_page_filename, news_list_html, og_tags,
                            page_hero)
 
 
@@ -206,9 +206,8 @@ class NewsPrivacyContactTests(unittest.TestCase):
     def test_all_pages_registered(self):
         self.assertEqual([p.filename for p in PAGES],
                          ["index.html", "company.html", "business.html", "message.html",
-                          "news.html", "privacy.html", "contact.html", "404.html",
-                          "news-site-launch.html", "news-book-announcement.html",
-                          "news-founding.html"])
+                          "news.html", "privacy.html", "contact.html", "404.html"]
+                         + [news_page_filename(n) for n in NEWS])
 
 
 if __name__ == "__main__":

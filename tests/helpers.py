@@ -14,7 +14,9 @@ if str(ROOT) not in sys.path:
 class LinkCollector(html.parser.HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.links: list[str] = []
+        self.links: list[str] = []      # every href/src (resources + anchors)
+        self.resources: list[str] = []  # loaded resources: src=, <link href>
+        self.anchors: list[str] = []    # <a href>
         self.scripts = 0
         self.title = ""
         self._in_title = False
@@ -28,6 +30,10 @@ class LinkCollector(html.parser.HTMLParser):
         for key in ("href", "src"):
             if a.get(key) is not None:
                 self.links.append(a[key])
+                if key == "src" or tag == "link":
+                    self.resources.append(a[key])
+                elif tag == "a":
+                    self.anchors.append(a[key])
 
     def handle_endtag(self, tag):
         if tag == "title":
