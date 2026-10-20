@@ -108,6 +108,45 @@ class PublishTests(TestCase):
         self.assertEqual(len(git.commits), 1)
         self.assertNotEqual((self.repo / "content/news.json").read_text(encoding="utf-8"), OLD)
 
+    def test_push_rejected_remote_has_newer_commits(self):
+        for err in ("! [rejected] main -> main (fetch first)", "non-fast-forward", "updates were rejected"):
+            git = FakeGit(push_error=err)
+            r = self.run_publish(git)
+            self.assertEqual(r.status, "push_failed")
+            self.assertIn("GitHub 側に新しい変更があるため送信できませんでした。サイトの管理者に連絡してください。",
+                          r.message)
+            self.assertIn(err, r.message)
+
+    def test_concurrent_publish_is_blocked(self):
+        self.assertTrue(publish_mod._publish_lock.acquire(blocking=False))
+        try:
+            git = FakeGit()
+            r = self.run_publish(git)
+        finally:
+            publish_mod._publish_lock.release()
+        self.assertEqual(r.status, "blocked")
+        self.assertIn("別の反映処理が実行中です。しばらく待ってから再度お試しください。", r.message)
+        self.assertEqual(git.commits, [])
+        self.assertEqual(self.run_publish(FakeGit()).status, "published")  # lock released afterwards
+
+    def test_unexpected_error_restores_and_blocks(self):
+        git = FakeGit()
+        with mock.patch("press.publish.export_published", side_effect=OSError("disk full")):
+            r = self.run_publish(git)
+        self.assertEqual(r.status, "blocked")
+        self.assertIn("予期しないエラーが発生しました: disk full", r.message)
+        self.assertEqual(git.commits, [])
+        self.assert_restored()
+        self.assertEqual(self.run_publish(FakeGit()).status, "published")
+
+    def test_unexpected_error_after_export_restores(self):
+        def boom(root):
+            raise OSError("tests crashed")
+        r = self.run_publish(FakeGit(), boom)
+        self.assertEqual(r.status, "blocked")
+        self.assertIn("tests crashed", r.message)
+        self.assert_restored()
+
     def test_no_changes_but_unpushed_commit_gets_pushed(self):
         git = FakeGit(push_error="offline")
         self.assertEqual(self.run_publish(git).status, "push_failed")

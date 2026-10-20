@@ -56,6 +56,26 @@ class ArticleModelTests(TestCase):
             a.clean()
         self.assertIn("image", cm.exception.message_dict)
 
+    def test_image_format_validated_on_full_clean(self):
+        a = make_article(image=SimpleUploadedFile("x.gif", b"x"), image_alt="alt")
+        with self.assertRaises(ValidationError) as cm:
+            a.full_clean()
+        self.assertIn("image", cm.exception.message_dict)
+        for ext in ("jpg", "JPEG", "png", "webp"):
+            a = make_article(image=SimpleUploadedFile(f"x.{ext}", b"x"), image_alt="alt")
+            try:
+                a.full_clean()
+            except ValidationError as e:
+                self.assertNotIn("image", e.message_dict)
+
+    def test_title_colliding_with_fixed_page_title_rejected(self):
+        # page title "<title> | Lead Japan 合同会社" equals the company page's title
+        a = make_article(title="会社紹介")
+        with self.assertRaises(ValidationError) as cm:
+            a.clean()
+        self.assertIn("title", cm.exception.message_dict)
+        make_article(title="会社紹介について").clean()
+
     def test_suggest_slug(self):
         d = datetime.date(2026, 10, 20)
         self.assertEqual(suggest_slug(d), "2026-10-20")

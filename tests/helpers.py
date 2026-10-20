@@ -49,3 +49,48 @@ def build_to_tmp() -> pathlib.Path:
     out = pathlib.Path(tempfile.mkdtemp())
     build(out)
     return out
+
+
+def collect(path: pathlib.Path) -> LinkCollector:
+    c = LinkCollector()
+    c.feed(path.read_text(encoding="utf-8"))
+    return c
+
+
+def check_internal_links_resolve(tc, out: pathlib.Path) -> None:
+    for page in out.glob("*.html"):
+        for link in collect(page).links:
+            if link.startswith(("http:", "https:", "mailto:", "#")):
+                continue
+            path, _, frag = link.partition("#")
+            target = out / path
+            tc.assertTrue(target.exists(), f"{page.name}: {link}")
+            if frag:
+                tc.assertIn(f'id="{frag}"', target.read_text(encoding="utf-8"), f"{page.name}: {link}")
+
+
+def check_no_javascript(tc, out: pathlib.Path) -> None:
+    for page in out.glob("*.html"):
+        tc.assertEqual(collect(page).scripts, 0, page.name)
+    tc.assertEqual(list(out.rglob("*.js")), [])
+
+
+def check_only_free_external_hosts(tc, out: pathlib.Path) -> None:
+    for page in out.glob("*.html"):
+        # only loaded resources (src=, <link href>) are restricted; <a href> to
+        # external sites (e.g. links inside press-release bodies) is allowed.
+        for link in collect(page).resources:
+            if link.startswith(("http:", "https:", "//")):
+                tc.assertRegex(link, r"^https://fonts\.(googleapis|gstatic)\.com(/|$)")
+
+
+def check_unique_titles(tc, out: pathlib.Path) -> None:
+    titles = [collect(p).title for p in out.glob("*.html")]
+    tc.assertEqual(len(titles), len(set(titles)))
+
+
+def check_whole_site(tc, out: pathlib.Path) -> None:
+    check_internal_links_resolve(tc, out)
+    check_no_javascript(tc, out)
+    check_only_free_external_hosts(tc, out)
+    check_unique_titles(tc, out)

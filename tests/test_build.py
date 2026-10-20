@@ -4,16 +4,11 @@ import tempfile
 import unittest
 from unittest import mock
 
-from tests.helpers import LinkCollector, build_to_tmp
+from tests.helpers import (LinkCollector, build_to_tmp, check_internal_links_resolve, check_no_javascript,
+                           check_only_free_external_hosts, check_unique_titles, collect)
 from build import build, format_warnings, placeholder_report
 from sitegen.content import UNCONFIRMED, NEWS
 from sitegen.pages import PAGES, article_pages, news_page_filename
-
-
-def collect(path: pathlib.Path) -> LinkCollector:
-    c = LinkCollector()
-    c.feed(path.read_text(encoding="utf-8"))
-    return c
 
 
 class BuildTests(unittest.TestCase):
@@ -65,32 +60,16 @@ class BuildTests(unittest.TestCase):
                 self.assertFalse(link.startswith("/"), f"{page.name}: {link}")
 
     def test_all_internal_links_resolve(self):
-        for page in self.out.glob("*.html"):
-            for link in collect(page).links:
-                if link.startswith(("http:", "https:", "mailto:", "#")):
-                    continue
-                path, _, frag = link.partition("#")
-                target = self.out / path
-                self.assertTrue(target.exists(), f"{page.name}: {link}")
-                if frag:
-                    self.assertIn(f'id="{frag}"', target.read_text(encoding="utf-8"), f"{page.name}: {link}")
+        check_internal_links_resolve(self, self.out)
 
     def test_no_javascript_anywhere(self):
-        for page in self.out.glob("*.html"):
-            self.assertEqual(collect(page).scripts, 0, page.name)
-        self.assertEqual(list(self.out.rglob("*.js")), [])
+        check_no_javascript(self, self.out)
 
     def test_only_free_external_hosts(self):
-        for page in self.out.glob("*.html"):
-            # only loaded resources (src=, <link href>) are restricted; <a href> to
-            # external sites (e.g. links inside press-release bodies) is allowed.
-            for link in collect(page).resources:
-                if link.startswith(("http:", "https:", "//")):
-                    self.assertRegex(link, r"^https://fonts\.(googleapis|gstatic)\.com(/|$)")
+        check_only_free_external_hosts(self, self.out)
 
     def test_unique_titles(self):
-        titles = [collect(p).title for p in self.out.glob("*.html")]
-        self.assertEqual(len(titles), len(set(titles)))
+        check_unique_titles(self, self.out)
 
     def test_404_content(self):
         text = (self.out / "404.html").read_text(encoding="utf-8")

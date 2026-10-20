@@ -27,6 +27,8 @@ def news_page_filename(item: NewsItem) -> str:
 
 
 def news_list_html(items: Sequence[NewsItem], *, with_summary: bool = False) -> str:
+    if not items:
+        return '<p class="news-empty">お知らせはまだありません。</p>'
     rows = []
     for item in items:
         summary = f'<p class="news-summary">{esc(item.summary)}</p>' if with_summary else ""

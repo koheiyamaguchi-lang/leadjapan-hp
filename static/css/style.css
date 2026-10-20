@@ -342,10 +342,10 @@ a { color: var(--navy-2); }
 .news-meta { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; }
 .news-meta time { font-variant-numeric: tabular-nums; color: var(--navy-2); letter-spacing: .05em; }
 .news-article .news-cat { background: var(--navy-2); color: #fff; border-color: var(--navy-2); }
-.news-article h2 { font-size: 1.3rem; color: var(--navy); margin: 0 0 .6rem; }
+.news-article h2:not(.article-title) { font-size: 1.3rem; color: var(--navy); margin: 0 0 .6rem; }
 .news-articles .news-list li { flex-wrap: wrap; }
 .news-summary { flex-basis: 100%; margin: .2rem 0 .6rem; color: var(--navy-2); font-size: .9rem; opacity: .8; }
-.article-title { font-size: clamp(1.4rem, 3vw, 1.9rem); color: var(--navy); margin: .4rem 0 1.4rem; }
+.news-article .article-title { font-size: clamp(1.4rem, 3vw, 1.9rem); color: var(--navy); margin: .4rem 0 1.4rem; }
 .article-image { margin: 0 0 1.6rem; }
 .article-image img { display: block; max-width: 100%; height: auto; }
 .article-body { line-height: 1.95; }

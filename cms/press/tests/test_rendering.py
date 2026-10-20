@@ -20,3 +20,11 @@ class RenderMarkdownTests(SimpleTestCase):
         self.assertNotIn("javascript:", out)
         for href in ("https://a.jp", "mailto:a@b.jp", "contact.html"):
             self.assertIn(f'href="{href}"', out)
+
+    def test_body_images_render_as_escaped_alt_text(self):
+        out = render_markdown(
+            "![説明 <b>&](https://example.com/a.png) ![](static/x.png) ![z](javascript:alert(1))")
+        self.assertNotIn("<img", out)
+        self.assertNotIn("example.com", out)
+        self.assertNotIn("javascript:", out)
+        self.assertIn("説明 &lt;b&gt;&amp;", out)

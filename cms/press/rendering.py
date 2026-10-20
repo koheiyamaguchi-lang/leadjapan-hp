@@ -33,9 +33,20 @@ def _drop_unsafe_links(state) -> None:
         block.children = kept
 
 
+def _images_to_alt_text(state) -> None:
+    """Body images are not supported (use the main image field): keep only the escaped alt text."""
+    for block in state.tokens:
+        if block.type != "inline" or not block.children:
+            continue
+        for tok in block.children:
+            if tok.type == "image":
+                tok.type, tok.tag, tok.attrs, tok.children = "text", "", {}, None
+
+
 _md = MarkdownIt("commonmark", {"html": False})
 _md.validateLink = lambda url: True  # unsafe URLs are unwrapped by _drop_unsafe_links
 _md.core.ruler.push("drop_unsafe_links", _drop_unsafe_links)
+_md.core.ruler.push("images_to_alt_text", _images_to_alt_text)
 
 
 def render_markdown(md: str) -> str:

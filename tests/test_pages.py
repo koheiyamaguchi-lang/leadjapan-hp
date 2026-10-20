@@ -68,6 +68,19 @@ def _item(**kw):
     return NewsItem(**d)
 
 
+class EmptyNewsTests(unittest.TestCase):
+    def test_empty_list_shows_placeholder_not_empty_ul(self):
+        out = news_list_html([])
+        self.assertIn("お知らせはまだありません。", out)
+        self.assertNotIn("<ul", out)
+
+    def test_news_and_home_pages_with_no_items(self):
+        with mock.patch("sitegen.pages.NEWS", ()):
+            for body in (body_news(), body_index()):
+                self.assertIn("お知らせはまだありません。", body)
+                self.assertNotIn('<ul class="news-list">', body)
+
+
 class NewsListLinkTests(unittest.TestCase):
     def test_news_list_links_article_pages(self):
         item = _item()

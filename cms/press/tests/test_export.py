@@ -7,13 +7,11 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 
-from sitegen.news import load_news
+from sitegen.news import NewsItem, load_news, news_to_json
 
 from press.export import ExportError, article_to_newsitem, export_published, image_target
 from press.models import Article
 from press.tests.test_models import make_article
-
-REAL_REPO = Path(__file__).resolve().parents[3]
 
 
 class ExportBase(TestCase):
@@ -89,12 +87,17 @@ class ExportTests(ExportBase):
 
 class ImportTests(TestCase):
     def test_import_news_idempotent(self):
-        path = REAL_REPO / "content/news.json"
-        for _ in range(2):
-            call_command("import_news", "--path", str(path), stdout=StringIO())
-        self.assertEqual(Article.objects.count(), 3)
-        self.assertEqual(set(Article.objects.values_list("status", flat=True)), {"published"})
-        self.assertEqual({a.slug for a in Article.objects.all()},
-                         {i.slug for i in load_news(path)})
-        a = Article.objects.get(slug="founding")
+        items = [
+            NewsItem("alpha", datetime.date(2026, 4, 1), "お知らせ", "アルファ", "概要A", "<p>a</p>", "a"),
+            NewsItem("beta-1", datetime.date(2026, 5, 2), "出版", "ベータ", "概要B", "<p>b</p>", "b"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "news.json"
+            path.write_text(news_to_json(items), encoding="utf-8")
+            for _ in range(2):
+                call_command("import_news", "--path", str(path), stdout=StringIO())
+            self.assertEqual(Article.objects.count(), 2)
+            self.assertEqual(set(Article.objects.values_list("status", flat=True)), {"published"})
+            self.assertEqual({a.slug for a in Article.objects.all()}, {i.slug for i in load_news(path)})
+        a = Article.objects.get(slug="alpha")
         self.assertEqual(a.published_on, datetime.date(2026, 4, 1))

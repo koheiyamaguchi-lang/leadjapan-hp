@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +19,7 @@ from .export import IMAGE_DIR, ExportError, export_published
 
 NEWS_JSON = "content/news.json"
 COMMIT_PATHS = ["content", IMAGE_DIR]
+_publish_lock = threading.Lock()
 FALLBACK_URL = "https://koheiyamaguchi-lang.github.io/leadjapan-hp/"
 
 
@@ -134,9 +136,9 @@ class _Snapshot:
             shutil.copytree(self.saved_imgs, self.imgs)
 
 
-def publish(repo_root: Path, *, git: Git | None = None,
-            run_tests: Callable[[Path], tuple[bool, str]] = run_site_tests,
-            now: Callable[[], datetime] = timezone.localtime) -> PublishResult:
+def _publish(repo_root: Path, *, git: Git | None = None,
+             run_tests: Callable[[Path], tuple[bool, str]] = run_site_tests,
+             now: Callable[[], datetime] = timezone.localtime) -> PublishResult:
     repo_root = Path(repo_root)
     git = git or SubprocessGit(repo_root)
 
@@ -165,6 +167,9 @@ def publish(repo_root: Path, *, git: Git | None = None,
         except GitError as e:
             snap.restore()
             return PublishResult("blocked", f"コミットに失敗しました: {e}")
+        except Exception as e:  # unexpected (OSError etc.): never surface as a 500
+            snap.restore()
+            return PublishResult("blocked", f"予期しないエラーが発生しました: {e}")
         except BaseException:
             snap.restore()
             raise
@@ -180,8 +185,24 @@ def publish(repo_root: Path, *, git: Git | None = None,
     try:
         git.push()
     except GitError as e:
+        if any(s in str(e).lower() for s in ("rejected", "fetch first", "non-fast-forward")):
+            return PublishResult(
+                "push_failed",
+                f"GitHub 側に新しい変更があるため送信できませんでした。サイトの管理者に連絡してください。（{e}）")
         return PublishResult(
             "push_failed",
             f"GitHub への送信に失敗しました（コミットは保存済み。次回の反映で送信されます）: {e}")
     url = content.SITE_URL or FALLBACK_URL
     return PublishResult("published", f"数分でサイトに反映されます: {url}", url)
+
+
+def publish(repo_root: Path, **kwargs) -> PublishResult:
+    """Run one publish at a time; a second concurrent call is refused, not queued."""
+    if not _publish_lock.acquire(blocking=False):
+        return PublishResult("blocked", "別の反映処理が実行中です。しばらく待ってから再度お試しください。")
+    try:
+        return _publish(repo_root, **kwargs)
+    except Exception as e:  # backstop for failures outside the snapshot-guarded section
+        return PublishResult("blocked", f"予期しないエラーが発生しました: {e}")
+    finally:
+        _publish_lock.release()

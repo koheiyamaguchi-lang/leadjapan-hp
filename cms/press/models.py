@@ -1,9 +1,10 @@
 import datetime
 
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import FileExtensionValidator, RegexValidator
 from django.db import models
 
+from sitegen import content as site_content
 from sitegen.news import CATEGORIES, SLUG_RE
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -31,7 +32,12 @@ class Article(models.Model):
     category = models.CharField("カテゴリ", max_length=20, choices=[(c, c) for c in CATEGORIES])
     summary = models.CharField("概要", max_length=200)
     body_md = models.TextField("本文 (Markdown)")
-    image = models.ImageField("画像", upload_to="news/", blank=True)
+    image = models.ImageField(
+        "画像", upload_to="news/", blank=True,
+        validators=[FileExtensionValidator(
+            ["jpg", "jpeg", "png", "webp"],
+            message="画像は jpg / png / webp 形式にしてください")],
+    )
     image_alt = models.CharField("画像の代替テキスト", max_length=200, blank=True)
     status = models.CharField(
         "状態", max_length=10, choices=[("draft", "下書き"), ("published", "公開")], default="draft"
@@ -48,6 +54,9 @@ class Article(models.Model):
 
     def clean(self):
         errors = {}
+        page_title = f"{self.title} | Lead Japan 合同会社"
+        if any(page_title == t for t, _ in site_content.PAGE_META.values()):
+            errors["title"] = "このタイトルは固定ページのタイトルと重なるため使えません。別のタイトルにしてください"
         if self.image:
             if not self.image_alt.strip():
                 errors["image_alt"] = "画像を設定する場合は代替テキストが必要です"
