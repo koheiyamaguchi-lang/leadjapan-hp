@@ -7,8 +7,8 @@ from sitegen.content import COPYRIGHT, NAV, PLACEHOLDER, SITE
 
 FONTS_URL = (
     "https://fonts.googleapis.com/css2?"
-    "family=Noto+Sans+JP:wght@400;500;700&"
-    "family=Noto+Serif+JP:wght@600;700&display=swap"
+    "family=Inter:wght@400;500;600;700&"
+    "family=Noto+Sans+JP:wght@400;500;700&display=swap"
 )
 
 

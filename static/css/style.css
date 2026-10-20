@@ -1,4 +1,6 @@
 :root {
+  /* Latin glyphs in Inter, Japanese in Noto Sans JP (both Google Fonts, free) */
+  --font: "Inter", "Noto Sans JP", sans-serif;
   --navy: #0b1f3a;
   --navy-2: #13315c;
   --tower: #e8380d;
@@ -16,14 +18,14 @@ html { scroll-behavior: smooth; scroll-padding-top: var(--header-h); }
 main { overflow-x: clip; }
 body {
   margin: 0;
-  font-family: "Noto Sans JP", sans-serif;
+  font-family: var(--font);
   line-height: 1.9;
   color: var(--ink);
   background: var(--paper);
   padding-top: var(--header-h);
 }
 img, svg { max-width: 100%; height: auto; }
-h1, h2, h3, h4 { font-family: "Noto Serif JP", serif; line-height: 1.5; margin: 0 0 .6em; }
+h1, h2, h3, h4 { font-family: var(--font); line-height: 1.5; margin: 0 0 .6em; }
 a { color: var(--navy-2); }
 :focus-visible { outline: 3px solid var(--tower); outline-offset: 3px; }
 
@@ -52,10 +54,10 @@ a { color: var(--navy-2); }
   display: flex; align-items: center; justify-content: space-between;
 }
 .logo {
-  font-family: "Noto Serif JP", serif; font-weight: 700; font-size: 1.35rem;
+  font-family: var(--font); font-weight: 700; font-size: 1.35rem;
   color: var(--navy); text-decoration: none; position: relative; z-index: 120;
 }
-.logo small { font-family: "Noto Sans JP", sans-serif; font-size: .7rem; font-weight: 500; margin-left: .3em; }
+.logo small { font-family: var(--font); font-size: .7rem; font-weight: 500; margin-left: .3em; }
 .global-nav { display: flex; gap: clamp(16px, 2.5vw, 36px); }
 .global-nav a {
   position: relative; color: var(--navy); text-decoration: none;
@@ -104,7 +106,7 @@ a { color: var(--navy-2); }
 /* Footer */
 .site-footer { background: var(--navy); color: #fff; padding: 56px 0 24px; margin-top: 0; }
 .footer-inner { display: flex; flex-wrap: wrap; gap: 32px; justify-content: space-between; }
-.footer-name { font-family: "Noto Serif JP", serif; font-size: 1.2rem; font-weight: 700; margin: 0 0 4px; }
+.footer-name { font-family: var(--font); font-size: 1.2rem; font-weight: 700; margin: 0 0 4px; }
 .footer-company p { margin: 0; }
 .footer-nav { display: flex; flex-wrap: wrap; gap: 8px 24px; }
 .footer-nav a { color: #fff; text-decoration: none; font-size: .9rem; opacity: .85; }
@@ -183,7 +185,7 @@ a { color: var(--navy-2); }
 }
 .hero-kicker::before { content: ""; width: 48px; height: 2px; background: var(--tower); }
 .hero h1 {
-  font-family: "Noto Serif JP", serif; font-weight: 700;
+  font-family: var(--font); font-weight: 700;
   font-size: clamp(2.4rem, 7vw, 5.5rem); line-height: 1.25; letter-spacing: .04em;
   color: #fff; margin: 0;
   word-break: keep-all; overflow-wrap: anywhere; text-wrap: balance;
@@ -207,7 +209,7 @@ a { color: var(--navy-2); }
 /* About */
 .about-grid { display: grid; gap: 24px 64px; }
 .lead-text {
-  font-family: "Noto Serif JP", serif; font-size: clamp(1.1rem, 2.2vw, 1.45rem);
+  font-family: var(--font); font-size: clamp(1.1rem, 2.2vw, 1.45rem);
   line-height: 2.1; color: var(--navy); margin: 0 0 2rem;
 }
 @media (min-width: 900px) {
@@ -225,7 +227,7 @@ a { color: var(--navy-2); }
 }
 .biz-card:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(11, 31, 58, .14); }
 .biz-num {
-  font-family: "Noto Serif JP", serif; font-weight: 700; color: var(--gold);
+  font-family: var(--font); font-weight: 700; color: var(--gold);
   font-size: clamp(2.6rem, 4vw, 3.4rem); line-height: 1; margin-bottom: 20px;
 }
 .biz-title { font-size: 1.15rem; color: var(--navy); margin: 0 0 4px; }
@@ -240,7 +242,7 @@ a { color: var(--navy-2); }
 .message-excerpt {
   margin: 0 0 2rem; padding: 8px 0 8px clamp(20px, 4vw, 40px);
   border-left: 3px solid var(--tower);
-  font-family: "Noto Serif JP", serif; font-size: clamp(1.15rem, 2.4vw, 1.6rem);
+  font-family: var(--font); font-size: clamp(1.15rem, 2.4vw, 1.6rem);
   line-height: 2; color: var(--navy);
 }
 .message-excerpt p { margin: 0; }
@@ -272,7 +274,7 @@ a { color: var(--navy-2); }
 .cta-band .section-label { color: var(--gold); }
 .cta-link {
   display: inline-flex; align-items: center; gap: .8em;
-  font-family: "Noto Serif JP", serif; font-weight: 700;
+  font-family: var(--font); font-weight: 700;
   font-size: clamp(1.5rem, 4vw, 2.6rem); color: #fff; text-decoration: none;
   padding-bottom: 6px; border-bottom: 2px solid rgba(255, 255, 255, .35);
   transition: border-color .3s;
@@ -287,7 +289,7 @@ a { color: var(--navy-2); }
 .philosophy {
   margin: 0; padding: 8px 0 8px clamp(20px, 4vw, 40px);
   border-left: 4px solid var(--tower);
-  font-family: "Noto Serif JP", serif; font-weight: 700;
+  font-family: var(--font); font-weight: 700;
   font-size: clamp(1.3rem, 3vw, 2rem); line-height: 1.9; color: var(--navy);
 }
 .philosophy p { margin: 0; }
@@ -321,7 +323,7 @@ a { color: var(--navy-2); }
 }
 .business-visual .biz-icon { width: 140px; height: 140px; }
 .business-text h2 { color: var(--navy); font-size: clamp(1.4rem, 3vw, 2rem); margin-bottom: .2em; }
-.business-text .biz-num { display: block; color: var(--tower-text); font-family: "Noto Serif JP", serif; font-size: 2.4rem; font-weight: 700; line-height: 1; }
+.business-text .biz-num { display: block; color: var(--tower-text); font-family: var(--font); font-size: 2.4rem; font-weight: 700; line-height: 1; }
 .business-text .biz-en { display: block; color: #555; letter-spacing: .1em; margin-bottom: 1em; font-size: .9rem; }
 .business-text ul { padding-left: 1.2em; margin: 0; }
 @media (min-width: 900px) {
@@ -333,7 +335,7 @@ a { color: var(--navy-2); }
 .message-side { background: var(--navy); overflow: hidden; min-height: 200px; }
 .message-side img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; display: block; }
 .message-body h2 { color: var(--navy); font-size: clamp(1.5rem, 3.5vw, 2.2rem); }
-.signature { margin-top: 2em; text-align: right; font-family: "Noto Serif JP", serif; }
+.signature { margin-top: 2em; text-align: right; font-family: var(--font); }
 .signature span { margin-right: 1em; }
 .signature strong { font-size: 1.3rem; }
 @media (min-width: 900px) {
@@ -355,7 +357,7 @@ a { color: var(--navy-2); }
 .article-image { margin: 0 0 1.6rem; }
 .article-image img { display: block; max-width: 100%; height: auto; }
 .article-body { line-height: 1.95; }
-.article-body h2, .article-body h3 { font-family: "Noto Serif JP", serif; color: var(--navy); margin: 2em 0 .6em; }
+.article-body h2, .article-body h3 { font-family: var(--font); color: var(--navy); margin: 2em 0 .6em; }
 .article-body p { margin: 0 0 1.2em; }
 .article-body ul, .article-body ol { margin: 0 0 1.2em; padding-left: 1.6em; }
 .article-body blockquote { margin: 1.4em 0; padding: .2em 0 .2em 1.2em; border-left: 3px solid var(--gold); }

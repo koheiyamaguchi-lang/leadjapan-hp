@@ -77,10 +77,15 @@ class BuildTests(unittest.TestCase):
         self.assertIn('href="index.html"', text)
 
     def test_placeholder_report(self):
+        # Content-independent: real pages may or may not still contain markers.
+        with tempfile.TemporaryDirectory() as d:
+            marked = pathlib.Path(d) / "a.html"
+            clean = pathlib.Path(d) / "b.html"
+            marked.write_text("x【要入力】y【要入力】", encoding="utf-8")
+            clean.write_text("nothing to fill", encoding="utf-8")
+            self.assertEqual(placeholder_report([marked, clean]), {"a.html": 2})
         report = placeholder_report(list(self.out.glob("*.html")))
-        self.assertTrue(report)
         self.assertTrue(all(v > 0 for v in report.values()))
-        self.assertIn("company.html", report)
 
     def test_format_warnings_lists_unconfirmed(self):
         out = format_warnings({"company.html": 2})

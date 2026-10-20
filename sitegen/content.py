@@ -16,10 +16,10 @@ SITE: dict[str, str] = {
         "その思いを込めて名付けました。日本の成長に寄与するか――それが私たちの価値基準です。"
     ),
     "location": "東京都",
-    "address": "東京都" + PLACEHOLDER,
-    "founded": "2026年" + PLACEHOLDER,
-    "representative": PLACEHOLDER,
-    "email": PLACEHOLDER,
+    "address": "東京都中野区",
+    "founded": "2026年10月19日",
+    "representative": "山口康平",
+    "email": PLACEHOLDER,  # TBC
     "status": "2026年設立。現在、各事業の立ち上げを進めています。",
 }
 
@@ -225,7 +225,6 @@ PAGE_META: dict[str, tuple[str, str]] = {
 
 # 公開前にオーナーが確認すべき項目（サイトには表示されない。ビルド時に「要確認」として表示）
 UNCONFIRMED: tuple[str, ...] = (
-    "NEWS: 設立のお知らせの日付（推定値 2026-04-01）",
     "NEWS: 書籍刊行のお知らせの日付（推定値 2026-06-01）",
     "NEWS: サイト公開日の日付（2026-10-19。公開当日の日付に更新）",
     "代表挨拶の本文（代表者本人による確認）",
