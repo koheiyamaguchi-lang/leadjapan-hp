@@ -1,8 +1,9 @@
 """Site content for Lead Japan 合同会社. Unknown facts use PLACEHOLDER."""
 from __future__ import annotations
 
-import datetime
 from dataclasses import dataclass
+
+from sitegen.news import NewsItem, load_news
 
 PLACEHOLDER = "【要入力】"
 
@@ -84,34 +85,9 @@ BUSINESSES: tuple[Business, ...] = (
 )
 
 
-@dataclass(frozen=True)
-class NewsItem:
-    date: datetime.date
-    category: str
-    title: str
-    body: str
+SITE_URL = ""
 
-
-NEWS: tuple[NewsItem, ...] = (
-    NewsItem(
-        date=datetime.date(2026, 10, 19),
-        category="お知らせ",
-        title="コーポレートサイトを公開しました",
-        body="Lead Japan 合同会社のコーポレートサイトを公開いたしました。今後、事業の進捗や出版に関する情報を随時お知らせしてまいります。",
-    ),
-    NewsItem(
-        date=datetime.date(2026, 6, 1),  # 【要入力】 実際の日付に置換
-        category="出版",
-        title="『外資系PM1年目の教科書』を2026年に刊行予定",
-        body="外資系企業でプロジェクトマネージャーとして歩み始める方に向けた書籍『外資系PM1年目の教科書』を、2026年に刊行する予定です。詳細が決まり次第、本サイトでご案内いたします。",
-    ),
-    NewsItem(
-        date=datetime.date(2026, 4, 1),  # 【要入力】 実際の日付に置換
-        category="お知らせ",
-        title="Lead Japan 合同会社を設立しました",
-        body="Lead Japan 合同会社を東京都に設立いたしました。日本の成長に寄与することを価値基準として、事業を進めてまいります。",
-    ),
-)
+NEWS: tuple[NewsItem, ...] = load_news()
 
 MESSAGE_TITLE = "日本を導き、世界へ。"
 

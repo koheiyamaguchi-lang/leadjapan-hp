@@ -235,7 +235,7 @@ def body_news() -> str:
             f'<time datetime="{item.date:%Y-%m-%d}">{item.date:%Y.%m.%d}</time>'
             f'<span class="news-cat">{esc(item.category)}</span></div>\n'
             f'<h2>{esc(item.title)}</h2>\n'
-            f'<p>{esc(item.body)}</p>\n'
+            f'<p>{esc(item.summary)}</p>\n'
             "</article>"
         )
     return f"""{page_hero("ニュースルーム", "NEWSROOM")}

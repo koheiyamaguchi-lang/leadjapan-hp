@@ -50,11 +50,11 @@ class IndexPageTests(unittest.TestCase):
 
 class NewsListTests(unittest.TestCase):
     def test_news_anchor(self):
-        item = NewsItem(datetime.date(2026, 1, 5), "c", "t", "b")
+        item = NewsItem("s", datetime.date(2026, 1, 5), "c", "t", "b", "<p>b</p>")
         self.assertEqual(news_anchor(item, 2), "news-20260105-2")
 
     def test_news_list_markup_and_escaping(self):
-        item = NewsItem(datetime.date(2026, 1, 5), "A&B", "<x>", "b")
+        item = NewsItem("s", datetime.date(2026, 1, 5), "A&B", "<x>", "b", "<p>b</p>")
         out = news_list_html([item])
         self.assertIn('<ul class="news-list">', out)
         self.assertIn('<li><time datetime="2026-01-05">2026.01.05</time>', out)

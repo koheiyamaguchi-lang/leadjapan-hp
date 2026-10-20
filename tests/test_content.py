@@ -1,6 +1,7 @@
 import unittest
 
 from sitegen import content as c
+from sitegen.news import CATEGORIES
 
 
 class ContentTest(unittest.TestCase):
@@ -25,7 +26,7 @@ class ContentTest(unittest.TestCase):
         self.assertEqual(dates, sorted(dates, reverse=True))
 
     def test_news_categories(self):
-        self.assertTrue({n.category for n in c.NEWS} <= {"お知らせ", "出版", "事業"})
+        self.assertTrue({n.category for n in c.NEWS} <= set(CATEGORIES))
 
     def test_no_revenue_claims(self):
         blob = repr(c.__dict__)
