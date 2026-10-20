@@ -1,0 +1,208 @@
+import datetime
+import subprocess
+import tempfile
+from pathlib import Path
+from unittest import mock
+
+from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+from press.publish import GitError, PublishResult, SubprocessGit, publish
+from press.tests.test_models import make_article
+
+FIXED_NOW = datetime.datetime(2026, 10, 20, 9, 5)
+OLD = '{"old": true}\n'
+
+
+class FakeGit:
+    def __init__(self, branch="main", changes=True, push_error=None):
+        self.branch, self.changes, self.push_error = branch, changes, push_error
+        self.commits, self.pushes, self.change_checks = [], 0, 0
+
+    def current_branch(self):
+        return self.branch
+
+    def has_changes(self, paths):
+        self.change_checks += 1
+        return self.changes
+
+    def commit(self, paths, message):
+        self.commits.append((list(paths), message))
+
+    def push(self):
+        self.pushes += 1
+        if self.push_error:
+            raise GitError(self.push_error)
+
+
+class PublishTests(TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        root = Path(self._tmp.name)
+        self.repo = root / "repo"
+        (self.repo / "content").mkdir(parents=True)
+        (self.repo / "static/img/news").mkdir(parents=True)
+        (self.repo / "content/news.json").write_text(OLD, encoding="utf-8")
+        (self.repo / "static/img/news/old.png").write_bytes(b"old")
+        ov = override_settings(MEDIA_ROOT=root / "media")
+        ov.enable()
+        self.addCleanup(ov.disable)
+        make_article(slug="pub-1", status="published").save()
+
+    def run_publish(self, git, tests=lambda r: (True, "ok")):
+        return publish(self.repo, git=git, run_tests=tests, now=lambda: FIXED_NOW)
+
+    def assert_restored(self):
+        self.assertEqual((self.repo / "content/news.json").read_text(encoding="utf-8"), OLD)
+        self.assertEqual((self.repo / "static/img/news/old.png").read_bytes(), b"old")
+        self.assertEqual([p.name for p in (self.repo / "static/img/news").iterdir()], ["old.png"])
+
+    def test_tests_failed_restores_files_and_skips_git(self):
+        git = FakeGit()
+        r = self.run_publish(git, lambda root: (False, "boom"))
+        self.assertEqual(r.status, "tests_failed")
+        self.assertIn("boom", r.output)
+        self.assertEqual(git.commits, [])
+        self.assert_restored()
+
+    def test_tests_failed_restores_when_news_json_did_not_exist(self):
+        (self.repo / "content/news.json").unlink()
+        r = self.run_publish(FakeGit(), lambda root: (False, "boom"))
+        self.assertEqual(r.status, "tests_failed")
+        self.assertFalse((self.repo / "content/news.json").exists())
+
+    def test_no_changes(self):
+        git = FakeGit(changes=False)
+        r = self.run_publish(git)
+        self.assertEqual(r.status, "no_changes")
+        self.assertEqual(git.commits, [])
+
+    def test_published_commits_only_content_paths(self):
+        git = FakeGit()
+        r = self.run_publish(git)
+        self.assertEqual(r.status, "published")
+        self.assertEqual(len(git.commits), 1)
+        paths, message = git.commits[0]
+        self.assertEqual(paths, ["content", "static/img/news"])
+        self.assertEqual(message, "news: サイトに反映 (2026-10-20 09:05)")
+        self.assertEqual(git.pushes, 1)
+        self.assertEqual(r.url, "https://koheiyamaguchi-lang.github.io/leadjapan-hp/")
+        self.assertIn("数分でサイトに反映されます", r.message)
+
+    def test_push_failure_reports_and_keeps_commit(self):
+        git = FakeGit(push_error="offline")
+        r = self.run_publish(git)
+        self.assertEqual(r.status, "push_failed")
+        self.assertIn("offline", r.message)
+        self.assertEqual(len(git.commits), 1)
+        self.assertNotEqual((self.repo / "content/news.json").read_text(encoding="utf-8"), OLD)
+
+    def test_blocked_on_other_branch_does_nothing(self):
+        git = FakeGit(branch="feature/x")
+        r = self.run_publish(git)
+        self.assertEqual(r.status, "blocked")
+        self.assertIn("main ブランチで実行してください（現在: feature/x）", r.message)
+        self.assertEqual(git.commits, [])
+        self.assertEqual(git.change_checks, 0)
+        self.assert_restored()
+
+    def test_export_error_blocks_and_restores(self):
+        a = make_article(slug="gone-1", title="画像欠落", status="published", image=SimpleUploadedFile("g.png", b"d"),
+                         image_alt="a")
+        a.save()
+        Path(a.image.path).unlink()
+        git = FakeGit()
+        r = self.run_publish(git)
+        self.assertEqual(r.status, "blocked")
+        self.assertIn("gone-1", r.message)
+        self.assertEqual(git.commits, [])
+        self.assert_restored()
+
+
+def sh(*args, cwd):
+    return subprocess.run(args, cwd=cwd, check=True, capture_output=True, text=True).stdout
+
+
+class SubprocessGitTests(TestCase):
+    """Runs only against a throwaway repo with a local bare remote."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        root = Path(self._tmp.name)
+        self.remote = root / "remote.git"
+        self.repo = root / "work"
+        self.repo.mkdir()
+        sh("git", "init", "--bare", "-b", "main", str(self.remote), cwd=root)
+        sh("git", "init", "-b", "main", cwd=self.repo)
+        for k, v in (("user.name", "t"), ("user.email", "t@example.com"), ("commit.gpgsign", "false")):
+            sh("git", "config", k, v, cwd=self.repo)
+        sh("git", "remote", "add", "origin", str(self.remote), cwd=self.repo)
+        (self.repo / "content").mkdir()
+        (self.repo / "content/news.json").write_text("[]\n")
+        (self.repo / "other.txt").write_text("x")
+        sh("git", "add", "-A", cwd=self.repo)
+        sh("git", "commit", "-m", "init", cwd=self.repo)
+        self.git = SubprocessGit(self.repo)
+
+    def test_branch_changes_commit_and_push(self):
+        self.assertEqual(self.git.current_branch(), "main")
+        self.assertFalse(self.git.has_changes(["content"]))
+        (self.repo / "content/news.json").write_text("[1]\n")
+        (self.repo / "other.txt").write_text("changed")
+        self.assertTrue(self.git.has_changes(["content"]))
+        self.git.commit(["content"], "news: test")
+        self.assertEqual(sh("git", "log", "-1", "--format=%s", cwd=self.repo).strip(), "news: test")
+        self.assertIn("other.txt", sh("git", "status", "--porcelain", cwd=self.repo))
+        self.git.push()
+        self.assertEqual(sh("git", "log", "-1", "--format=%s", "main", cwd=self.remote).strip(), "news: test")
+
+    def test_push_failure_raises_git_error(self):
+        sh("git", "remote", "set-url", "origin", str(self.remote) + "-missing", cwd=self.repo)
+        with self.assertRaises(GitError):
+            self.git.push()
+
+
+class PublishAdminTests(TestCase):
+    def login(self):
+        self.client.force_login(get_user_model().objects.create_superuser("admin", "a@example.com", "pw"))
+
+    def test_admin_publish_requires_post_and_staff(self):
+        url = reverse("admin:press_article_publish")
+        r = self.client.post(url)
+        self.assertEqual(r.status_code, 302)
+        self.assertIn(reverse("admin:login"), r["Location"])
+        self.login()
+        with mock.patch("press.views.publish") as p:
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, "サイトに反映")
+            p.assert_not_called()
+
+    def test_changelist_has_button(self):
+        self.login()
+        r = self.client.get(reverse("admin:press_article_changelist"))
+        self.assertContains(r, reverse("admin:press_article_publish"))
+        self.assertContains(r, "サイトに反映")
+
+    def test_admin_publish_shows_message(self):
+        self.login()
+        res = PublishResult("published", "数分でサイトに反映されます: https://example.com/", "https://example.com/")
+        with mock.patch("press.views.publish", return_value=res):
+            r = self.client.post(reverse("admin:press_article_publish"), follow=True)
+        self.assertRedirects(r, reverse("admin:press_article_changelist"))
+        self.assertContains(r, "数分でサイトに反映されます: https://example.com/")
+
+    def test_admin_publish_failure_levels_and_pre(self):
+        self.login()
+        res = PublishResult("tests_failed", "テストが失敗したため反映を中止しました", output="<b>trace</b>")
+        with mock.patch("press.views.publish", return_value=res):
+            r = self.client.post(reverse("admin:press_article_publish"))
+        msgs = list(get_messages(r.wsgi_request))
+        self.assertEqual(msgs[0].level_tag, "error")
+        self.assertIn("&lt;b&gt;trace&lt;/b&gt;", str(msgs[0]))
+        self.assertIn("<pre>", str(msgs[0]))

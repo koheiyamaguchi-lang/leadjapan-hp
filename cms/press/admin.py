@@ -1,7 +1,9 @@
 import datetime
 
 from django.contrib import admin
+from django.urls import path
 
+from . import views
 from .models import Article, suggest_slug
 
 
@@ -17,3 +19,7 @@ class ArticleAdmin(admin.ModelAdmin):
         initial.setdefault("published_on", today)
         initial.setdefault("slug", suggest_slug(today))
         return initial
+
+    def get_urls(self):
+        custom = [path("publish/", self.admin_site.admin_view(views.publish_view), name="press_article_publish")]
+        return custom + super().get_urls()
