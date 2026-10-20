@@ -10,6 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from press import publish as publish_mod
 from press.publish import GitError, PublishResult, SubprocessGit, publish
 from press.tests.test_models import make_article
 
@@ -21,6 +22,10 @@ class FakeGit:
     def __init__(self, branch="main", changes=True, push_error=None):
         self.branch, self.changes, self.push_error = branch, changes, push_error
         self.commits, self.pushes, self.change_checks = [], 0, 0
+        self.ahead = 0
+
+    def unpushed_commits(self):
+        return self.ahead
 
     def current_branch(self):
         return self.branch
@@ -31,11 +36,13 @@ class FakeGit:
 
     def commit(self, paths, message):
         self.commits.append((list(paths), message))
+        self.ahead += 1
 
     def push(self):
         self.pushes += 1
         if self.push_error:
             raise GitError(self.push_error)
+        self.ahead = 0
 
 
 class PublishTests(TestCase):
@@ -101,6 +108,33 @@ class PublishTests(TestCase):
         self.assertEqual(len(git.commits), 1)
         self.assertNotEqual((self.repo / "content/news.json").read_text(encoding="utf-8"), OLD)
 
+    def test_no_changes_but_unpushed_commit_gets_pushed(self):
+        git = FakeGit(push_error="offline")
+        self.assertEqual(self.run_publish(git).status, "push_failed")
+        git.push_error = None
+        git.changes = False
+        r = self.run_publish(git)
+        self.assertEqual(r.status, "published")
+        self.assertEqual(git.pushes, 2)
+        self.assertEqual(len(git.commits), 1)
+
+    def test_no_changes_and_nothing_unpushed_does_not_push(self):
+        git = FakeGit(changes=False)
+        self.assertEqual(self.run_publish(git).status, "no_changes")
+        self.assertEqual(git.pushes, 0)
+
+    def test_export_keeps_gitkeep(self):
+        (self.repo / "static/img/news/.gitkeep").write_text("")
+        self.run_publish(FakeGit())
+        self.assertTrue((self.repo / "static/img/news/.gitkeep").exists())
+
+    def test_run_site_tests_timeout_is_failure(self):
+        with mock.patch("press.publish.subprocess.run",
+                        side_effect=subprocess.TimeoutExpired("x", 300)):
+            ok, out = publish_mod.run_site_tests(self.repo)
+        self.assertFalse(ok)
+        self.assertIn("タイムアウト", out)
+
     def test_blocked_on_other_branch_does_nothing(self):
         git = FakeGit(branch="feature/x")
         r = self.run_publish(git)
@@ -160,6 +194,45 @@ class SubprocessGitTests(TestCase):
         self.assertIn("other.txt", sh("git", "status", "--porcelain", cwd=self.repo))
         self.git.push()
         self.assertEqual(sh("git", "log", "-1", "--format=%s", "main", cwd=self.remote).strip(), "news: test")
+
+    def test_commit_text_only_when_image_dir_missing_or_empty(self):
+        for make_empty in (False, True):
+            with self.subTest(empty_dir=make_empty):
+                img = self.repo / "static/img/news"
+                if make_empty:
+                    img.mkdir(parents=True, exist_ok=True)
+                (self.repo / "content/news.json").write_text(f"[{make_empty}]\n")
+                self.assertTrue(self.git.has_changes(publish_mod.COMMIT_PATHS))
+                self.git.commit(publish_mod.COMMIT_PATHS, "news: text only")
+                self.assertEqual(sh("git", "log", "-1", "--format=%s", cwd=self.repo).strip(), "news: text only")
+                self.assertFalse(self.git.has_changes(publish_mod.COMMIT_PATHS))
+
+    def test_commit_leaves_unrelated_staged_file_alone(self):
+        (self.repo / "content/news.json").write_text("[2]\n")
+        (self.repo / "other.txt").write_text("staged change")
+        sh("git", "add", "other.txt", cwd=self.repo)
+        self.git.commit(publish_mod.COMMIT_PATHS, "news: only content")
+        self.assertEqual(sh("git", "show", "--name-only", "--format=", "HEAD", cwd=self.repo).split(),
+                         ["content/news.json"])
+        self.assertIn("M  other.txt", sh("git", "status", "--porcelain", cwd=self.repo))
+
+    def test_failed_commit_unstages_paths(self):
+        (self.repo / "content/news.json").write_text("[3]\n")
+        sh("git", "config", "core.hooksPath", str(self.repo / "hooks"), cwd=self.repo)
+        (self.repo / "hooks").mkdir()
+        hook = self.repo / "hooks/pre-commit"
+        hook.write_text("#!/bin/sh\nexit 1\n")
+        hook.chmod(0o755)
+        with self.assertRaises(GitError):
+            self.git.commit(publish_mod.COMMIT_PATHS, "news: nope")
+        self.assertNotIn("M  content/news.json", sh("git", "status", "--porcelain", cwd=self.repo))
+
+    def test_unpushed_commits_counts_ahead_of_origin(self):
+        self.git.push()
+        self.assertEqual(self.git.unpushed_commits(), 0)
+        (self.repo / "content/news.json").write_text("[4]\n")
+        self.git.commit(publish_mod.COMMIT_PATHS, "news: ahead")
+        self.assertEqual(self.git.unpushed_commits(), 1)
 
     def test_push_failure_raises_git_error(self):
         sh("git", "remote", "set-url", "origin", str(self.remote) + "-missing", cwd=self.repo)

@@ -36,6 +36,7 @@ class PublishResult:
 class Git(Protocol):
     def current_branch(self) -> str: ...
     def has_changes(self, paths: list[str]) -> bool: ...
+    def unpushed_commits(self) -> int: ...
     def commit(self, paths: list[str], message: str) -> None: ...
     def push(self) -> None: ...
 
@@ -58,20 +59,52 @@ class SubprocessGit:
     def current_branch(self) -> str:
         return self._run("rev-parse", "--abbrev-ref", "HEAD").strip()
 
+    def _usable(self, paths: list[str]) -> list[str]:
+        """Drop pathspecs git would reject: neither tracked nor holding any file on disk."""
+        keep = []
+        for p in paths:
+            full = self.repo_root / p
+            on_disk = full.is_file() or (full.is_dir() and any(f.is_file() for f in full.rglob("*")))
+            if on_disk or self._run("ls-files", "--", p).strip():
+                keep.append(p)
+        return keep
+
     def has_changes(self, paths: list[str]) -> bool:
-        return bool(self._run("status", "--porcelain", "--", *paths).strip())
+        paths = self._usable(paths)
+        if not paths:
+            return False
+        return bool(self._run("status", "--porcelain", "--untracked-files=all", "--", *paths).strip())
+
+    def unpushed_commits(self) -> int:
+        try:
+            return int(self._run("rev-list", "--count", "origin/main..HEAD").strip())
+        except ValueError as e:
+            raise GitError(str(e)) from e
 
     def commit(self, paths: list[str], message: str) -> None:
+        paths = self._usable(paths)
+        if not paths:
+            raise GitError("コミット対象のファイルがありません")
         self._run("add", "-A", "--", *paths)
-        self._run("commit", "-m", message, "--", *paths)
+        try:
+            self._run("commit", "-m", message, "--", *paths)
+        except GitError:
+            try:
+                self._run("reset", "-q", "--", *paths)
+            except GitError:
+                pass
+            raise
 
     def push(self) -> None:
         self._run("push", "origin", "main", timeout=120)
 
 
 def run_site_tests(repo_root: Path) -> tuple[bool, str]:
-    p = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"],
-                       cwd=repo_root, capture_output=True, text=True)
+    try:
+        p = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"],
+                           cwd=repo_root, capture_output=True, text=True, timeout=300)
+    except subprocess.TimeoutExpired:
+        return False, "テストがタイムアウトしました（300秒）"
     out = "\n".join(((p.stdout or "") + (p.stderr or "")).splitlines()[-40:])
     return p.returncode == 0, out
 
@@ -126,15 +159,23 @@ def publish(repo_root: Path, *, git: Git | None = None,
             if not ok:
                 snap.restore()
                 return PublishResult("tests_failed", "テストが失敗したため反映を中止しました", output=output)
-            if not git.has_changes(COMMIT_PATHS):
-                return PublishResult("no_changes", "変更はありません")
-            git.commit(COMMIT_PATHS, f"news: サイトに反映 ({now():%Y-%m-%d %H:%M})")
+            new_commit = git.has_changes(COMMIT_PATHS)
+            if new_commit:
+                git.commit(COMMIT_PATHS, f"news: サイトに反映 ({now():%Y-%m-%d %H:%M})")
         except GitError as e:
             snap.restore()
             return PublishResult("blocked", f"コミットに失敗しました: {e}")
         except BaseException:
             snap.restore()
             raise
+
+    if not new_commit:
+        try:
+            ahead = git.unpushed_commits()
+        except GitError:
+            ahead = 1  # cannot tell: try the push
+        if ahead == 0:
+            return PublishResult("no_changes", "変更はありません")
 
     try:
         git.push()
